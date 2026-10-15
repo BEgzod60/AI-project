@@ -1,0 +1,80 @@
+# Iymon — Islomiy ta'lim platformasi
+
+Iymon — namoz o'rganish, iymon mavzulari, namoz vaqtlari, Qur'on suralari va qibla topish imkoniyatlarini bir joyda jamlagan islomiy ta'lim platformasi.
+
+## Texnologiyalar
+
+### Backend
+- **Django 5** + **Django REST Framework** — REST API
+- `requests` — tashqi namoz vaqtlari API bilan ishlash
+
+### Frontend
+- **React 18** + **TypeScript** — UI
+- **Vite** — build tool
+- **Tailwind CSS** — uslublar
+- **React Router** — sahifalar orasida navigatsiya
+
+## Papka tuzilishi
+
+```
+Iymon/
+├── designs/      # Claude o'qiydigan UI maketlari
+├── backend/      # Django + DRF
+│   ├── config/   # Loyiha sozlamalari va routlar
+│   └── apps/     # Modular Django applari
+└── frontend/     # React + Vite + TypeScript + Tailwind
+    └── src/
+        ├── components/   # Qayta ishlatiladigan UI
+        ├── pages/        # Individual sahifalar
+        ├── services/     # API integratsiyasi
+        ├── hooks/        # Custom React hooklar
+        └── types/        # TypeScript interfeyslari
+```
+
+## Ishga tushirish
+
+### Backend
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver 8001
+```
+
+Backend: http://127.0.0.1:8001 (Vite `/api` so‘rovlarini shu portga yo‘naltiradi)
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend: http://localhost:5173
+
+## Asosiy API
+
+- `GET /api/prayer-times/?city=Toshkent` — berilgan hudud uchun kunlik namoz vaqtlari
+- `GET /api/prayer-times/month/?city=Toshkent&month=10&year=2026` — oylik jadval
+- `GET /api/prayer-times/year/?city=Toshkent&year=2026` — yillik jadval (faqat e'lon qilingan oylar)
+
+Manba: namoz-vaqtlari.more-info.uz (islom.uz ma'lumotlari). Keyingi oylar oldindan e'lon qilinmaydi.
+
+## Namoz bo'limi kontenti
+
+Matnlar O'zbekiston musulmonlari idorasining rasmiy saytidan (https://muslim.uz/uz/c/prayer) import qilinadi:
+
+```bash
+python manage.py import_muslimuz            # yangi bo'limlarni qo'shadi (qayta ishga tushirish xavfsiz)
+python manage.py import_muslimuz --dry-run  # faqat hisobot
+python manage.py import_muslimuz --update   # mavjud bo'limlar matnini manbadan yangilaydi
+```
+
+Matn o'zgartirilmaydi, faqat belgilash (ro'yxatlar, ma'nosi) tuziladi. Arab yozuvidagi xatboshilar
+sukut bo'yicha olib tashlanadi (lotincha o'qilishi va ma'nosi qoladi); saqlash uchun `--keep-arabic`.
+Iymon bo'limi uchun: `python manage.py import_muslimuz --category iymon`. Lotin sahifasida
+to'liq bo'lmagan bloklar kirill sahifasidan o'giriladi va admin panelda «Tekshiruv kutilmoqda» holatida qoladi.

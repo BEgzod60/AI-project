@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+    /* Skrollbar paydo bo'lganda/yo'qolganda sahifa yon tomonga siljimasin */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-neutral-50 font-sans text-neutral-800 dark:bg-neutral-950 dark:text-neutral-100;
+  }
+}
+
+@layer components {
+  /* Sidebar menyusi: oq matn; hover/fokusda yashil rang va yengil neon nur */
+  .nav-neon {
+    @apply text-white;
+    transition:
+      color 0.3s ease,
+      background-color 0.3s ease,
+      box-shadow 0.3s ease,
+      text-shadow 0.3s ease,
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .nav-neon svg {
+    transition:
+      filter 0.3s ease,
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .nav-neon:hover,
+  .nav-neon:focus-visible {
+    @apply text-emerald-300 outline-none;
+    background-color: rgb(52 211 153 / 0.1);
+    box-shadow:
+      inset 0 0 0 1px rgb(52 211 153 / 0.45),
+      0 0 14px rgb(52 211 153 / 0.3);
+    text-shadow: 0 0 8px rgb(52 211 153 / 0.75);
+  }
+
+  .nav-neon:hover svg,
+  .nav-neon:focus-visible svg {
+    filter: drop-shadow(0 0 4px rgb(52 211 153 / 0.9));
+    transform: scale(1.1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .nav-neon:hover,
+    .nav-neon:focus-visible {
+      transform: translateX(4px);
+    }
+  }
+
+  /* Bosh sahifa bo'lim kartalari: oq karta; hover/fokus/bosishda butunlay yashil + neon nur */
+  .card-neon,
+  .card-neon .card-neon-icon,
+  .card-neon .card-neon-icon svg,
+  .card-neon .card-neon-title,
+  .card-neon .card-neon-subtitle,
+  .card-neon .card-neon-arrow {
+    transition:
+      color 0.3s ease,
+      background-color 0.3s ease,
+      box-shadow 0.35s ease,
+      text-shadow 0.3s ease,
+      filter 0.3s ease,
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .card-neon:hover,
+  .card-neon:focus-visible,
+  .card-neon:active {
+    @apply bg-primary-500 text-white;
+    outline: none;
+    box-shadow:
+      0 0 0 1px rgb(52 211 153 / 0.6),
+      0 0 24px rgb(52 211 153 / 0.45),
+      0 14px 30px -10px rgb(6 95 70 / 0.5);
+  }
+
+  .card-neon:hover .card-neon-title,
+  .card-neon:focus-visible .card-neon-title,
+  .card-neon:active .card-neon-title {
+    @apply text-white;
+    text-shadow: 0 0 10px rgb(167 243 208 / 0.6);
+  }
+
+  .card-neon:hover .card-neon-subtitle,
+  .card-neon:focus-visible .card-neon-subtitle,
+  .card-neon:active .card-neon-subtitle {
+    @apply text-white/85;
+  }
+
+  .card-neon:hover .card-neon-icon,
+  .card-neon:focus-visible .card-neon-icon,
+  .card-neon:active .card-neon-icon {
+    @apply bg-white/15 text-white;
+    box-shadow: 0 0 14px rgb(167 243 208 / 0.45);
+  }
+
+  .card-neon:hover .card-neon-icon svg,
+  .card-neon:focus-visible .card-neon-icon svg,
+  .card-neon:active .card-neon-icon svg {
+    filter: drop-shadow(0 0 4px rgb(255 255 255 / 0.8));
+  }
+
+  .card-neon:hover .card-neon-arrow,
+  .card-neon:focus-visible .card-neon-arrow,
+  .card-neon:active .card-neon-arrow {
+    @apply bg-white text-primary-600;
+    box-shadow: 0 0 12px rgb(255 255 255 / 0.5);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card-neon:hover,
+    .card-neon:focus-visible {
+      transform: translateY(-4px);
+    }
+
+    /* Bosilganda biroz "botib" turadi */
+    .card-neon:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .card-neon:hover .card-neon-icon svg,
+    .card-neon:focus-visible .card-neon-icon svg {
+      transform: scale(1.1);
+    }
+
+    .card-neon:hover .card-neon-arrow,
+    .card-neon:focus-visible .card-neon-arrow {
+      transform: translateX(4px);
+    }
+  }
+
+  /* Namoz mavzu sahifasi: manbadan olingan formatlangan matn (SectionBlock) */
+  .namoz-content {
+    @apply text-[15px] leading-relaxed text-neutral-700 dark:text-neutral-300;
+  }
+
+  .namoz-content > * + * {
+    @apply mt-3;
+  }
+
+  .namoz-content strong {
+    @apply font-semibold text-neutral-900 dark:text-white;
+  }
+
+  .namoz-content h3 {
+    @apply !mt-6 font-display text-lg font-bold text-neutral-900 dark:text-white;
+  }
+
+  .namoz-content p.center {
+    @apply text-center;
+  }
+
+  .namoz-content p.arabic {
+    @apply rounded-2xl bg-accent-100/60 px-5 py-4 text-right text-2xl leading-[2.4] text-neutral-900 dark:bg-accent-500/10 dark:text-neutral-100;
+    font-family: 'Amiri', 'Scheherazade New', 'Traditional Arabic', serif;
+  }
+
+  .namoz-content p.meaning {
+    @apply rounded-r-2xl border-l-4 border-primary-500 bg-primary-50 px-4 py-3 dark:bg-primary-900/30;
+  }
+
+  .namoz-content ol.steps,
+  .namoz-content ul.letters {
+    @apply space-y-2;
+  }
+
+  .namoz-content ol.steps {
+    @apply list-decimal pl-7;
+  }
+
+  .namoz-content ol.steps > li {
+    @apply rounded-xl bg-neutral-50 px-4 py-3 ring-1 ring-black/5 dark:bg-neutral-800/60 dark:ring-white/10;
+  }
+
+  .namoz-content ol.steps > li::marker {
+    @apply font-display font-bold text-primary-600;
+  }
+
+  .namoz-content ul.letters > li {
+    @apply rounded-r-xl border-l-4 border-accent-400 bg-neutral-50 px-4 py-2.5 dark:bg-neutral-800/60;
+  }
+
+  .namoz-content iframe {
+    @apply w-full rounded-xl;
+  }
+}

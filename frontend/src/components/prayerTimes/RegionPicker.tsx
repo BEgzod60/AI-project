@@ -1,0 +1,185 @@
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { REGIONS } from '../../utils/constants';
+import { REGION_COORDS } from './clock';
+
+const COLUMNS = 2;
+
+interface Props {
+  value: string;
+  onChange: (region: string) => void;
+}
+
+function PinIcon({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-5.1-7-11a7 7 0 1 1 14 0c0 5.9-7 11-7 11Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+/** Viloyat tanlash: yumaloq "chip"lardan iborat ochiladigan panel (listbox) */
+export function RegionPicker({ value, onChange }: Props) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(() => Math.max(0, REGIONS.indexOf(value as (typeof REGIONS)[number])));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const listId = useId();
+  const city = REGION_COORDS[value]?.city;
+
+  // Ochilganda tanlangan viloyatga fokus
+  useEffect(() => {
+    if (!open) return;
+    const idx = Math.max(0, REGIONS.indexOf(value as (typeof REGIONS)[number]));
+    setActive(idx);
+    requestAnimationFrame(() => optionRefs.current[idx]?.focus());
+  }, [open, value]);
+
+  // Tashqariga bosilganda yopiladi
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [open]);
+
+  const choose = (region: string) => {
+    onChange(region);
+    setOpen(false);
+    buttonRef.current?.focus();
+  };
+
+  const move = (to: number) => {
+    const idx = (to + REGIONS.length) % REGIONS.length;
+    setActive(idx);
+    optionRefs.current[idx]?.focus();
+  };
+
+  const onListKey = (e: KeyboardEvent<HTMLUListElement>) => {
+    const keys: Record<string, () => void> = {
+      ArrowRight: () => move(active + 1),
+      ArrowLeft: () => move(active - 1),
+      ArrowDown: () => move(active + COLUMNS),
+      ArrowUp: () => move(active - COLUMNS),
+      Home: () => move(0),
+      End: () => move(REGIONS.length - 1),
+      Enter: () => choose(REGIONS[active]),
+      ' ': () => choose(REGIONS[active]),
+      Escape: () => {
+        setOpen(false);
+        buttonRef.current?.focus();
+      },
+    };
+    if (e.key === 'Tab') {
+      setOpen(false);
+      return;
+    }
+    const action = keys[e.key];
+    if (action) {
+      e.preventDefault();
+      action();
+    }
+  };
+
+  return (
+    <div ref={rootRef} className="relative min-w-[240px]">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+        className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left ring-1 backdrop-blur-sm transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
+          open ? 'bg-white/20 ring-accent-400/70' : 'bg-white/10 ring-white/20 hover:bg-white/15 hover:ring-white/35'
+        }`}
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-400/15 text-accent-400 ring-1 ring-accent-400/30">
+          <PinIcon className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] text-white/60">Hudud</span>
+          <span className="block truncate font-semibold text-white">{value}</span>
+        </span>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className={`h-4 w-4 text-white/70 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-40 mt-2 w-[min(92vw,26rem)] origin-top-left rounded-3xl bg-primary-900/95 p-3 shadow-2xl shadow-black/40 ring-1 ring-white/15 backdrop-blur-md motion-safe:animate-fade-in">
+          <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/50">Hududni tanlang</p>
+          <ul
+            id={listId}
+            role="listbox"
+            aria-label="Hududlar"
+            onKeyDown={onListKey}
+            className="grid max-h-[22rem] grid-cols-2 gap-1.5 overflow-y-auto pr-1"
+          >
+            {REGIONS.map((r, i) => {
+              const selected = r === value;
+              return (
+                <li
+                  key={r}
+                  id={`${listId}-${i}`}
+                  ref={(el) => {
+                    optionRefs.current[i] = el;
+                  }}
+                  role="option"
+                  aria-selected={selected}
+                  tabIndex={i === active ? 0 : -1}
+                  onClick={() => choose(r)}
+                  onMouseEnter={() => setActive(i)}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-2xl px-3 py-2.5 outline-none ring-1 transition duration-200 focus-visible:ring-2 focus-visible:ring-accent-400 ${
+                    selected
+                      ? 'bg-gradient-to-br from-accent-400 to-accent-500 text-primary-900 shadow-lg shadow-accent-500/20 ring-accent-400'
+                      : 'bg-white/[0.04] text-white ring-white/10 hover:bg-white/10 hover:ring-emerald-300/40'
+                  }`}
+                >
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                      selected ? 'bg-primary-900/15 text-primary-900' : 'bg-emerald-400/10 text-emerald-300'
+                    }`}
+                  >
+                    {selected ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m5 12.5 4.5 4.5L19 7.5" />
+                      </svg>
+                    ) : (
+                      <PinIcon className="h-4 w-4" />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{r}</span>
+                    {REGION_COORDS[r] && REGION_COORDS[r].city !== r && (
+                      <span className={`block truncate text-[11px] ${selected ? 'text-primary-900/70' : 'text-white/50'}`}>
+                        {REGION_COORDS[r].city}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      {city && city !== value && <span className="sr-only">Markaz: {city}</span>}
+    </div>
+  );
+}
