@@ -99,3 +99,4 @@ class MosqueCount(models.Model):
 
     def __str__(self):
         return f'{self.label}: {self.count}'
+

@@ -17,10 +17,18 @@ export interface Mosque {
   phone: string;
   /** Ish vaqti (OSM opening_hours, o'zbekchaga o'girilgan) — bo'lmasa bo'sh */
   opening_hours: string;
+  /** Google Maps reytingi (kalit sozlangan va joy topilgan bo'lsa) */
+  google?: GoogleRating | null;
   /** Masjidlar katalogi (masjid.uz) ma'lumoti — moslashtirilgan bo'lsa */
   directory: MosqueDirectory | null;
   /** Joylashuvdan to'g'ri chiziqli masofa, metr */
   distance_m: number;
+}
+
+export interface GoogleRating {
+  rating: number;
+  count: number;
+  url: string;
 }
 
 export interface MosqueDirectory {
@@ -48,6 +56,8 @@ export interface NearbyMosques {
   count: number;
   mosques: Mosque[];
   counts: MosqueCount[];
+  /** Reyting manbasi: 'google' — Google Maps; null — reyting ulanmagan */
+  ratings: 'google' | null;
   source: string;
   attribution: string;
 }

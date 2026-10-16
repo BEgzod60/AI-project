@@ -88,6 +88,12 @@ Masjid ma'lumotlari faqat manbasi bilan ko'rsatiladi: imom-xatib, manzil, telefo
 qurilgan yili va Vikipediya — Wikidata / OSM; O'zbekiston bo'yicha jami soni — Din ishlari bo'yicha qo'mita.
 Imom-xatiblar almashib turadi, shuning uchun `import_masjid_uz` ni vaqti-vaqti bilan qayta ishga tushiring.
 
+Masjidlar reytingi — Google Maps'dagi tayyor reyting (ixtiyoriy). `backend/.env` ga `GOOGLE_MAPS_API_KEY` qo'ying:
+Google Cloud'da **Places API (New)** yoqilgan, faqat shu API bilan cheklangan kalit. Reyting Nearby Search
+Enterprise SKU bo'yicha hisoblanadi (oylik bepul limitdan keyin pullik). Google qoidalariga ko'ra reyting saqlanmaydi
+(har so'rovda olinadi) va faqat ro'yxatda «Google Maps» belgisi bilan ko'rsatiladi (OSM xaritasida emas).
+Kalit bo'lmasa sahifa ishlayveradi — reyting o'rnida «ma'lumot yo'q» yoziladi.
+
 Namoz vaqtlari kuniga 1 marta yangilanishi uchun cron:
 
 ```

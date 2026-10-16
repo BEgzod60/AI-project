@@ -19,6 +19,8 @@ import requests
 from django.core.cache import cache
 from django.db import transaction
 
+from django.conf import settings
+
 from .models import DirectoryEntry, Mosque, MosqueArea, MosqueCount
 
 # Asosiy server va zaxiralar (biri band yoki ishlamasa — keyingisi)

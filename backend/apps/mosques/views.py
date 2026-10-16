@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from . import services
+from . import google_places, services
 
 
 def _error(message, code, http_status=status.HTTP_400_BAD_REQUEST):
@@ -33,11 +33,17 @@ def nearby_mosques(request):
     except services.MosqueServiceError as exc:
         return _error(str(exc), 'upstream_error', exc.status)
 
+    # Google Maps reytingi (kalit sozlangan bo'lsa) — saqlanmaydi, har so'rovda olinadi
+    if google_places.enabled():
+        google_places.attach_ratings(mosques, lat, lon, radius, services.distance_m)
+
     return Response({
         'radius': radius,
         'count': len(mosques),
         'mosques': mosques,
         'counts': services.area_counts(lat, lon),
+        'ratings': 'google' if google_places.enabled() else None,
         'source': 'OpenStreetMap',
         'attribution': '© OpenStreetMap hissadorlari',
     })
+

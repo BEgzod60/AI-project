@@ -119,6 +119,26 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
     }
   }, [activeId, mosques]);
 
+  // Belgilash boshlanganda — hozirgi joyga yaqinlashadi (aniq bosish oson bo'lsin)
+  useEffect(() => {
+    if (picking && mapRef.current && elRef.current?.offsetWidth) mapRef.current.setView([center.lat, center.lon], 16);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picking]);
+
+  // Birinchi bosishdan keyin — o'sha nuqtaga yanada yaqinlashadi, belgini aniqlashtirish uchun
+  const hadPending = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!picking) {
+      hadPending.current = false;
+      return;
+    }
+    if (pending && !hadPending.current && map) {
+      hadPending.current = true;
+      map.setView([pending.lat, pending.lon], Math.max(map.getZoom(), 18));
+    }
+  }, [picking, pending]);
+
   // Belgilanayotgan nuqta: oltin nishon, sudrab aniqlashtirish mumkin
   useEffect(() => {
     const map = mapRef.current;

@@ -318,3 +318,49 @@ class DirectoryParserEdgeTests(TestCase):
 
         self.assertEqual(split_phone('Usta Olim ko‘chasi 46a-uy. Telefon: +998 71 240 67 28'),
                          ('Usta Olim ko‘chasi 46a-uy', '+998 71 240 67 28'))
+
+
+
+class GoogleRatingTests(TestCase):
+    """Google reytingi: kalit bo'lsa olinadi, saqlanmaydi; eng yaqin joyga moslashtiriladi."""
+
+    url = '/api/qibla/mosques/'
+
+    def setUp(self):
+        from .models import Mosque
+
+        cache.clear()
+        Mosque.objects.create(osm_id='node/1', name='Minor masjidi', lat=41.3300, lon=69.2700)
+        Mosque.objects.create(osm_id='node/2', name='Boshqa masjid', lat=41.3400, lon=69.2800)
+        from .models import MosqueArea
+        MosqueArea.objects.create(south=40, west=68, north=42, east=70, count=2)
+
+    def test_no_key_no_request(self):
+        with mock.patch.dict('os.environ', {'GOOGLE_MAPS_API_KEY': ''}), mock.patch('apps.mosques.google_places.requests.post') as post:
+            data = self.client.get(self.url, {'lat': '41.330', 'lon': '69.270', 'radius': '3000'}).json()
+        post.assert_not_called()
+        self.assertIsNone(data['ratings'])
+        self.assertNotIn('google', data['mosques'][0])
+
+    def test_ratings_matched_by_distance(self):
+        google = {'places': [
+            {'id': 'a', 'displayName': {'text': 'Minor Mosque'}, 'location': {'latitude': 41.3302, 'longitude': 69.2703},
+             'rating': 4.8, 'userRatingCount': 5321, 'googleMapsUri': 'https://maps.google.com/?cid=1'},
+            {'id': 'b', 'displayName': {'text': 'Uzoq masjid'}, 'location': {'latitude': 41.36, 'longitude': 69.31},
+             'rating': 4.1, 'userRatingCount': 10, 'googleMapsUri': 'https://maps.google.com/?cid=2'},
+        ]}
+        with mock.patch.dict('os.environ', {'GOOGLE_MAPS_API_KEY': 'test-key'}), \
+                mock.patch('apps.mosques.google_places.requests.post', return_value=_response(200, google)) as post:
+            data = self.client.get(self.url, {'lat': '41.330', 'lon': '69.270', 'radius': '3000'}).json()
+        self.assertEqual(post.call_args.kwargs['headers']['X-Goog-Api-Key'], 'test-key')
+        self.assertEqual(data['ratings'], 'google')
+        by_id = {m['id']: m for m in data['mosques']}
+        self.assertEqual(by_id['node/1']['google'], {'rating': 4.8, 'count': 5321, 'url': 'https://maps.google.com/?cid=1'})
+        self.assertIsNone(by_id['node/2']['google'])  # yaqinida Google joyi yo'q — reyting o'ylab topilmaydi
+
+    def test_google_error_does_not_break_list(self):
+        with mock.patch.dict('os.environ', {'GOOGLE_MAPS_API_KEY': 'k'}), \
+                mock.patch('apps.mosques.google_places.requests.post', return_value=_response(403, {})):
+            res = self.client.get(self.url, {'lat': '41.330', 'lon': '69.270', 'radius': '3000'})
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(all(m['google'] is None for m in res.json()['mosques']))

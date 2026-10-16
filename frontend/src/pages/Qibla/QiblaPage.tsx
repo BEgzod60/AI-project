@@ -13,9 +13,21 @@ const QiblaMap = lazy(() => import('../../components/qibla/QiblaMap'));
 
 /** Joylashuvni aniqlash: shu aniqlikka (metr) yetguncha yoki shu vaqtgacha yangilanib boradi */
 const GEO_GOOD_ACCURACY = 30;
-const GEO_MAX_WAIT = 12000;
-/** Bundan katta xatolikda — ogohlantirish (kompyuterda IP/Wi-Fi orqali taxminiy aniqlanadi) */
+const GEO_MAX_WAIT = 20000;
+/** Aniqlik darajalari (metr): shundan katta bo'lsa — joy noto'g'ri bo'lishi mumkin */
+const GEO_FAIR_ACCURACY = 50;
 const GEO_WARN_ACCURACY = 300;
+/** Bundan katta xatolik — odatda IP-manzil bo'yicha (shahar darajasida) aniqlangan */
+const GEO_IP_ACCURACY = 3000;
+
+type GeoQuality = 'good' | 'fair' | 'poor' | 'ip';
+
+function geoQuality(accuracy: number): GeoQuality {
+  if (accuracy <= GEO_FAIR_ACCURACY) return 'good';
+  if (accuracy <= GEO_WARN_ACCURACY) return 'fair';
+  if (accuracy < GEO_IP_ACCURACY) return 'poor';
+  return 'ip';
+}
 
 /** Qibla bilan to'g'ri kelish chegarasi (±gradus) */
 const ALIGN_DEG = 5;
@@ -68,7 +80,8 @@ export function QiblaPage() {
   const [place, setPlace] = useState<Place>(() => regionPlace(region));
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
-  const [geoWarn, setGeoWarn] = useState<string | null>(null);
+  /** Xaritada aniq belgilashni so'rash (NearbyMosques'ga) — har bosishda oshadi */
+  const [pickRequest, setPickRequest] = useState(0);
   const watchId = useRef<number | null>(null);
   const watchTimer = useRef<number | null>(null);
   const [picking, setPicking] = useState(false);
@@ -120,7 +133,6 @@ export function QiblaPage() {
 
   const locate = () => {
     setGeoError(null);
-    setGeoWarn(null);
     if (!window.isSecureContext) {
       setGeoError('Joylashuvni aniqlash faqat xavfsiz (HTTPS) ulanishda ishlaydi. Shaharni qo‘lda tanlang.');
       setPicking(true);
@@ -138,12 +150,6 @@ export function QiblaPage() {
     const finish = () => {
       stopWatch();
       setLocating(false);
-      if (best && best.coords.accuracy > GEO_WARN_ACCURACY) {
-        setGeoWarn(
-          `Joylashuv taxminiy (±${formatDistance(best.coords.accuracy)}). Kompyuterda joylashuv internet (IP yoki Wi-Fi) orqali ` +
-            'aniqlanadi va xato bo‘lishi mumkin. Aniq joyingizni pastdagi «Joyimni xaritada belgilash» tugmasi bilan ko‘rsating yoki telefondan foydalaning.',
-        );
-      }
     };
 
     // Bir necha soniya kuzatiladi: birinchi (ko'pincha taxminiy) natijadan keyin aniqrog'i keladi
@@ -188,7 +194,6 @@ export function QiblaPage() {
       stopWatch();
       setLocating(false);
       setGeoError(null);
-      setGeoWarn(null);
       setPlace({ lat: p.lat, lon: p.lon, label: 'Xaritada belgilangan joy', short: 'Siz', source: 'map' });
     },
     [stopWatch],
@@ -198,7 +203,6 @@ export function QiblaPage() {
     if (!REGION_COORDS[value]) return;
     stopWatch();
     setLocating(false);
-    setGeoWarn(null);
     setPlace(regionPlace(value));
     setPicking(false);
     setGeoError(null);
@@ -210,6 +214,24 @@ export function QiblaPage() {
     compass.stop();
     mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
+
+  // Joylashuv aniqligi haqida ogohlantirish (faqat qurilma orqali aniqlanganda)
+  const geoStatus = (() => {
+    if (place.source !== 'gps' || place.accuracy === undefined) return null;
+    const acc = formatDistance(place.accuracy);
+    const q = geoQuality(place.accuracy);
+    if (locating && q !== 'good')
+      return { tone: 'warn', text: `Aniqlanmoqda: ±${acc}. Aniqlik oshirilmoqda — bir necha soniya kuting (ochiq joyda va GPS yoqilganda tezroq).` };
+    if (q === 'good') return { tone: 'ok', text: `Joylashuv aniq aniqlandi (±${acc}).` };
+    if (q === 'fair')
+      return { tone: 'warn', text: `Joylashuv taxminan aniqlandi (±${acc}). Xaritadagi ko‘k nuqta haqiqiy joyingizdan biroz farq qilishi mumkin — kerak bo‘lsa, xaritada aniq belgilang.` };
+    if (q === 'poor')
+      return { tone: 'warn', text: `Joylashuv aniq aniqlanmadi (±${acc}) — joy noto‘g‘ri bo‘lishi mumkin. Telefonda GPS’ni yoqing yoki joyingizni xaritada aniq belgilang.` };
+    return {
+      tone: 'warn',
+      text: `Joylashuv aniqlanmadi, faqat taxminiy hudud topildi (±${acc}). Kompyuterlarda joylashuv internet (IP) orqali aniqlanadi va bir necha km xato bo‘ladi. Joyingizni xaritada aniq belgilang.`,
+    };
+  })();
 
   const device = live ? 'Telefon (jonli kompas)' : isTouch ? 'Telefon (xarita rejimi)' : 'Kompyuter (xarita rejimi)';
 
@@ -383,10 +405,27 @@ export function QiblaPage() {
             {locating ? (place.source === 'gps' ? 'Aniqlik oshirilmoqda...' : 'Aniqlanmoqda...') : 'Joylashuvimni aniqlash'}
           </button>
 
-          {geoWarn && (
-            <p role="status" className="rounded-2xl bg-amber-50 p-3 text-sm leading-relaxed text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:ring-amber-500/30">
-              {geoWarn}
-            </p>
+          {geoStatus && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`rounded-2xl p-3 text-sm leading-relaxed ring-1 ${
+                geoStatus.tone === 'ok'
+                  ? 'bg-emerald-50 text-emerald-900 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-100 dark:ring-emerald-500/30'
+                  : 'bg-amber-50 text-amber-900 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:ring-amber-500/30'
+              }`}
+            >
+              <p>{geoStatus.text}</p>
+              {geoStatus.tone !== 'ok' && (
+                <button
+                  type="button"
+                  onClick={() => setPickRequest((n) => n + 1)}
+                  className="mt-2 inline-flex min-h-[2.75rem] items-center gap-2 rounded-xl bg-primary-700 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                >
+                  <Icon d={ICONS.pin} className="h-4 w-4" /> Xaritada aniq belgilash
+                </button>
+              )}
+            </div>
           )}
 
           {geoError && (
@@ -404,13 +443,13 @@ export function QiblaPage() {
         {/* Xarita: shimol yuqorida, Ka'baga eng qisqa yo'l */}
         <div ref={mapRef} className="h-[20rem] overflow-hidden rounded-2xl ring-1 ring-black/5 sm:h-[24rem] lg:col-span-2 min-[1400px]:col-span-1 min-[1400px]:h-auto dark:ring-white/10">
           <Suspense fallback={<Loading label="Xarita yuklanmoqda..." />}>
-            <QiblaMap from={location} label={place.short} bearing={bearing} distance={distance} />
+            <QiblaMap from={location} label={place.short} bearing={bearing} distance={distance} accuracy={place.source === 'gps' ? place.accuracy : undefined} />
           </Suspense>
         </div>
       </section>
 
       {/* ===== Yaqin masjidlar ===== */}
-      <NearbyMosques location={location} onPickLocation={pickOnMap} />
+      <NearbyMosques location={location} onPickLocation={pickOnMap} pickRequest={pickRequest} />
     </div>
   );
 }

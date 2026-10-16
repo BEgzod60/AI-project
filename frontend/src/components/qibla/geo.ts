@@ -47,6 +47,17 @@ export function greatCirclePoints(a: LatLon, b: LatLon = KAABA, steps = 64): [nu
   return out;
 }
 
+/** Berilgan nuqtadan yo'nalish (gradus) bo'yicha masofa (metr) uzoqlikdagi nuqta */
+export function destinationPoint(from: LatLon, bearingDeg: number, meters: number): LatLon {
+  const d = meters / R;
+  const t = rad(bearingDeg);
+  const p1 = rad(from.lat);
+  const l1 = rad(from.lon);
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(t));
+  const l2 = l1 + Math.atan2(Math.sin(t) * Math.sin(d) * Math.cos(p1), Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+  return { lat: deg(p2), lon: ((deg(l2) + 540) % 360) - 180 };
+}
+
 /** -180..180 oralig'idagi burchak farqi */
 export function angleDiff(a: number, b: number): number {
   return ((a - b + 540) % 360) - 180;

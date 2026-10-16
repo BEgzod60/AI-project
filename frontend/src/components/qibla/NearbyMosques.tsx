@@ -1,10 +1,13 @@
-import { Suspense, lazy, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { getNearbyMosques } from '../../services/qiblaService';
 import { Loading } from '../common/Loading';
 import { formatDistance, type LatLon } from './geo';
 import type { Mosque, MosqueCount } from '../../types/qibla';
 import { directionsUrl, mosqueTitle } from './mosqueUtils';
+import { getDailyPrayerTimes } from '../../services/prayerService';
+import { REGION_COORDS } from '../prayerTimes/clock';
+import { distanceMeters } from './geo';
 
 const MosqueMap = lazy(() => import('./MosqueMap'));
 
@@ -116,96 +119,146 @@ function telHref(phone: string): string {
   return `tel:${phone.split(/[,;]/)[0].replace(/[^\d+]/g, '')}`;
 }
 
-function MosqueDetails({ m }: { m: Mosque }) {
+/** Bugungi namoz vaqtlari (ish vaqti ko'rsatilmagan masjidlar uchun umumiy ma'lumot) */
+export interface TodayTimes {
+  bomdod: string;
+  xufton: string;
+}
+
+function Row({ label, children, muted }: { label: string; children: ReactNode; muted?: boolean }) {
+  // Yorliq qiymat ustida — tor ekranda ham matn to'liq kenglikda (so'z o'rtasidan bo'linmaydi)
+  return (
+    <div>
+      <dt className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">{label}</dt>
+      <dd className={`text-xs ${muted ? 'text-neutral-400' : 'font-medium text-neutral-800 dark:text-neutral-100'}`}>{children}</dd>
+    </div>
+  );
+}
+
+/** Masjid ma'lumotlari — har bir masjidda bir xil tartibda (yo'q ma'lumot «Ko'rsatilmagan» deb yoziladi) */
+const nfr = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+
+/** Reyting — faqat Google Maps'dagi tayyor reyting (Google qoidasiga ko'ra alohida blokda, «Google Maps» belgisi bilan) */
+function Rating({ m, source }: { m: Mosque; source: 'google' | null }) {
+  if (source === 'google' && m.google) {
+    return (
+      <a
+        href={m.google.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-[1.75rem] items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2 py-0.5 hover:border-neutral-300 dark:border-white/15 dark:bg-neutral-800"
+        aria-label={`Google Maps reytingi: ${m.google.rating}, ${m.google.count} ta sharh`}
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+          <path fill="#fbbc04" d="m12 2.5 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8L12 2.5Z" />
+        </svg>
+        <span className="text-sm font-bold text-neutral-900 dark:text-white">{m.google.rating.toFixed(1)}</span>
+        <span className="text-neutral-500">({nfr(m.google.count)})</span>
+        <span className="whitespace-nowrap border-l border-neutral-200 pl-1.5 text-[11px] font-medium text-neutral-600 dark:border-white/15 dark:text-neutral-300">Google Maps</span>
+      </a>
+    );
+  }
+  return (
+    <span className="inline-flex min-h-[1.75rem] items-center gap-1 text-neutral-400">
+      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+        <path fill="currentColor" opacity="0.5" d="m12 2.5 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8L12 2.5Z" />
+      </svg>
+      {source === 'google' ? 'Google Maps’da reyting topilmadi' : 'Reyting: ma’lumot yo‘q'}
+    </span>
+  );
+}
+
+function MosqueDetails({ m, today, ratingSource }: { m: Mosque; today: TodayTimes | null; ratingSource: 'google' | null }) {
   const [open, setOpen] = useState(false);
   const d = m.directory;
   // Telefon: katalog (masjid.uz) yoki OSM — qaysi biri bo'lsa
   const phone = d?.phone || m.phone;
-  const hasMore = !!(d || m.wikipedia || m.website);
-  if (!d?.imam && !m.built && !phone && !m.opening_hours && !hasMore) return null;
+  const address = d?.address ? `${d.address}${d.district ? `, ${d.district}` : ''}` : m.address;
+  const [osmType, osmNum] = m.id.split('/');
+  const generalHours = today ? `odatda besh vaqt namozda ochiq — bugun bomdod ${today.bomdod} dan xufton ${today.xufton} gacha` : '';
 
   return (
-    <div className="mt-1.5 text-xs text-neutral-600 dark:text-neutral-300">
-      {(phone || m.opening_hours) && (
-        <div className="mb-1 flex flex-wrap gap-x-3 gap-y-1">
-          {phone && (
-            <a
-              href={telHref(phone)}
-              className="inline-flex min-h-[1.75rem] items-center gap-1 rounded-full bg-primary-50 px-2.5 font-semibold text-primary-800 ring-1 ring-primary-500/20 transition hover:bg-primary-100 dark:bg-primary-900/40 dark:text-emerald-200 dark:ring-white/10"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />
-              </svg>
-              <span className="sr-only">Telefon: </span>
-              {phone.split(/[,;]/)[0].trim()}
-            </a>
-          )}
-          {m.opening_hours && (
-            <span className="inline-flex min-h-[1.75rem] items-center gap-1">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 text-neutral-400" aria-hidden>
-                <circle cx="12" cy="12" r="9" />
-                <path strokeLinecap="round" d="M12 7v5l3 2" />
-              </svg>
-              <span className="text-neutral-400">Ish vaqti:</span> <span className="font-semibold text-neutral-800 dark:text-neutral-100">{m.opening_hours}</span>
-            </span>
-          )}
-        </div>
-      )}
+    <div className="mt-1.5 space-y-1.5 text-xs text-neutral-600 dark:text-neutral-300">
+      <Rating m={m} source={ratingSource} />
+
       <div className="flex flex-wrap gap-x-3 gap-y-1">
-        {d?.imam && (
-          <span>
-            <span className="text-neutral-400">Imom-xatib:</span> <span className="font-semibold text-neutral-800 dark:text-neutral-100">{d.imam}</span>
-          </span>
+        {phone ? (
+          <a
+            href={telHref(phone)}
+            className="inline-flex min-h-[1.75rem] items-center gap-1 rounded-full bg-primary-50 px-2.5 font-semibold text-primary-800 ring-1 ring-primary-500/20 transition hover:bg-primary-100 dark:bg-primary-900/40 dark:text-emerald-200 dark:ring-white/10"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />
+            </svg>
+            <span className="sr-only">Telefon: </span>
+            {phone.split(/[,;]/)[0].trim()}
+          </a>
+        ) : (
+          <span className="inline-flex min-h-[1.75rem] items-center text-neutral-400">Telefon ko‘rsatilmagan</span>
         )}
-        {m.built && (
-          <span>
-            <span className="text-neutral-400">Qurilgan:</span> <span className="font-semibold text-neutral-800 dark:text-neutral-100">{m.built}</span>
-          </span>
-        )}
-      </div>
-      {hasMore && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          className="mt-1 inline-flex min-h-[2rem] items-center gap-1 font-semibold text-primary-700 hover:underline dark:text-emerald-300"
-        >
-          {open ? 'Yopish' : 'Batafsil'}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+        <span className="inline-flex min-h-[1.75rem] items-center gap-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 text-neutral-400" aria-hidden>
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" d="M12 7v5l3 2" />
           </svg>
-        </button>
-      )}
+          {m.opening_hours ? (
+            <span className="font-semibold text-neutral-800 dark:text-neutral-100">{m.opening_hours}</span>
+          ) : (
+            <span className="text-neutral-400">Ish vaqti ko‘rsatilmagan</span>
+          )}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="inline-flex min-h-[2rem] items-center gap-1 font-semibold text-primary-700 hover:underline dark:text-emerald-300"
+      >
+        {open ? 'Yopish' : 'Batafsil'}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
       {open && (
-        <dl className="mt-1 space-y-1 rounded-xl bg-neutral-50 p-2.5 motion-safe:animate-fade-in dark:bg-white/5">
-          {d?.address && (
-            <div>
-              <dt className="inline text-neutral-400">Manzil: </dt>
-              <dd className="inline">{d.address}{d.district ? `, ${d.district}` : ''}</dd>
-            </div>
-          )}
-          {d?.phone && (
-            <div>
-              <dt className="inline text-neutral-400">Telefon: </dt>
-              <dd className="inline">
-                <a href={telHref(d.phone)} className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">{d.phone}</a>
-              </dd>
-            </div>
-          )}
-          {(m.wikipedia || m.website) && (
-            <div className="flex flex-wrap gap-3">
-              {m.wikipedia && <a href={m.wikipedia} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">Vikipediya ↗</a>}
-              {m.website && <a href={m.website} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">Veb-sayt ↗</a>}
-            </div>
-          )}
-          {d && (
-            <p className="text-[11px] text-neutral-400">
-              Manba:{' '}
-              <a href={d.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-primary-700">{d.source}</a>
-              . Imom-xatiblar almashib turadi — ma'lumot eskirgan bo‘lishi mumkin.
-            </p>
-          )}
-        </dl>
+        <div className="rounded-xl bg-neutral-50 p-2.5 motion-safe:animate-fade-in dark:bg-white/5">
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+            <Row label="Imom-xatib" muted={!d?.imam}>{d?.imam || 'Ko‘rsatilmagan'}</Row>
+            <Row label="Qurilgan" muted={!m.built}>{m.built || 'Ma’lumot yo‘q'}</Row>
+            <Row label="Manzil" muted={!address}>{address || 'Ko‘rsatilmagan'}</Row>
+            <Row label="Telefon" muted={!phone}>
+              {phone ? (
+                <a href={telHref(phone)} className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">{phone}</a>
+              ) : (
+                'Ko‘rsatilmagan'
+              )}
+            </Row>
+            <Row label="Ish vaqti" muted={!m.opening_hours}>
+              {m.opening_hours || (
+                <>
+                  Ko‘rsatilmagan{generalHours && <span className="block text-neutral-500 dark:text-neutral-400">Umumiy ma’lumot: {generalHours}</span>}
+                </>
+              )}
+            </Row>
+          </dl>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-neutral-200 pt-2 dark:border-white/10">
+            {m.wikipedia && <a href={m.wikipedia} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">Vikipediya ↗</a>}
+            {m.website && <a href={m.website} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">Veb-sayt ↗</a>}
+            <a
+              href={`https://www.openstreetmap.org/${osmType}/${osmNum}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary-700 hover:underline dark:text-emerald-300"
+            >
+              OpenStreetMap ↗
+            </a>
+          </div>
+          <p className="mt-1.5 text-[11px] leading-snug text-neutral-400">
+            Manbalar: {d ? <><a href={d.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{d.source}</a> (imom-xatib, manzil, telefon — eskirgan bo‘lishi mumkin), </> : null}
+            OpenStreetMap / Wikidata. Xato yoki yetishmayotgan ma’lumotni OpenStreetMap’da qo‘shish mumkin.
+          </p>
+        </div>
       )}
     </div>
   );
@@ -215,14 +268,30 @@ interface Props {
   location: LatLon;
   /** Xaritada belgilangan joy (aniq joylashuv) */
   onPickLocation: (point: LatLon) => void;
+  /** Tashqaridan (masalan, aniqlik past bo'lganda) belgilash rejimini ochish — har o'zgarishda */
+  pickRequest?: number;
 }
 
-export function NearbyMosques({ location, onPickLocation }: Props) {
+export function NearbyMosques({ location, onPickLocation, pickRequest = 0 }: Props) {
   const [radiusKm, setRadiusKm] = useState<(typeof RADII)[number]>(3);
   const [view, setView] = useState<View>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  // Eng yaqin viloyat markazi bo'yicha bugungi namoz vaqtlari (ish vaqti ko'rsatilmagan masjidlar uchun)
+  const nearestRegion = Object.entries(REGION_COORDS).reduce((best, [r, c]) =>
+    distanceMeters(location, c) < distanceMeters(location, REGION_COORDS[best]) ? r : best, 'Toshkent');
+  const times = useApi(() => getDailyPrayerTimes(nearestRegion), [nearestRegion]);
+  const today: TodayTimes | null = times.data ? { bomdod: times.data.timings.bomdod, xufton: times.data.timings.xufton } : null;
   const [pending, setPending] = useState<LatLon | null>(null);
+
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!pickRequest) return;
+    setPicking(true);
+    setPending(null);
+    setView('map');
+    requestAnimationFrame(() => sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [pickRequest]);
 
   // Ro'yxat ko'rinadimi (telefonda ro'yxat yoki xarita; belgilash rejimida — faqat xarita)
   const showList = view === 'list' && !picking;
@@ -274,7 +343,7 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
                 <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                   {m.address || m.directory?.address || 'Manzil xaritada ko‘rsatilmagan'}
                 </p>
-                <MosqueDetails m={m} />
+                <MosqueDetails m={m} today={today} ratingSource={data?.ratings ?? null} />
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
                   <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700 dark:text-emerald-300">
                     <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
@@ -372,7 +441,7 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
   );
 
   return (
-    <section aria-labelledby="yaqin-masjidlar" className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 dark:bg-neutral-900 dark:ring-white/10">
+    <section ref={sectionRef} aria-labelledby="yaqin-masjidlar" className="scroll-mt-20 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 dark:bg-neutral-900 dark:ring-white/10">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent-100 text-primary-700 dark:bg-accent-500/15 dark:text-accent-400">
