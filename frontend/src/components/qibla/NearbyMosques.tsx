@@ -7,7 +7,8 @@ import { directionsUrl, mosqueTitle } from './mosqueUtils';
 
 const MosqueMap = lazy(() => import('./MosqueMap'));
 
-const RADII = [1, 3, 5, 10] as const;
+// Kichik radius — tezroq javob va yengilroq xarita (katta radius sahifani sekinlashtiradi)
+const RADII = [1, 3] as const;
 type View = 'list' | 'map';
 
 function MosqueGlyph({ className }: { className: string }) {
@@ -54,10 +55,36 @@ function Segment<T extends string | number>({
   );
 }
 
-export function NearbyMosques({ location }: { location: LatLon }) {
+/** Masjid rasmi (OSM'da bo'lsa) — kichik, kesilgan holda; yuklanmasa belgi ko'rsatiladi */
+function MosqueThumb({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <MosqueGlyph className="h-8 w-8 sm:h-9 sm:w-9" />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      width={80}
+      height={80}
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover"
+    />
+  );
+}
+
+interface Props {
+  location: LatLon;
+  /** Xaritada belgilangan joy (aniq joylashuv) */
+  onPickLocation: (point: LatLon) => void;
+}
+
+export function NearbyMosques({ location, onPickLocation }: Props) {
   const [radiusKm, setRadiusKm] = useState<(typeof RADII)[number]>(3);
   const [view, setView] = useState<View>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   const { data, loading, error, retry } = useApi(
     () => getNearbyMosques(location.lat, location.lon, radiusKm * 1000),
     [location.lat, location.lon, radiusKm],
@@ -80,9 +107,9 @@ export function NearbyMosques({ location }: { location: LatLon }) {
                 type="button"
                 onClick={() => setActiveId(m.id)}
                 aria-label={`${mosqueTitle(m)} — xaritada ko‘rsatish`}
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-700 to-primary-900 text-accent-400 sm:h-20 sm:w-20"
+                className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary-700 to-primary-900 text-accent-400 sm:h-20 sm:w-20"
               >
-                <MosqueGlyph className="h-8 w-8 sm:h-9 sm:w-9" />
+                <MosqueThumb src={m.image} alt={mosqueTitle(m)} />
               </button>
               <div className="flex min-w-0 flex-1 flex-col">
                 <h3 className="font-display text-base font-bold leading-snug text-neutral-900 dark:text-white">{mosqueTitle(m)}</h3>
@@ -113,11 +140,51 @@ export function NearbyMosques({ location }: { location: LatLon }) {
   );
 
   const map = (
-    <div className="h-[24rem] overflow-hidden rounded-2xl ring-1 ring-black/5 sm:h-[30rem] lg:h-[34rem] dark:ring-white/10">
+    <div className={`relative h-[24rem] overflow-hidden rounded-2xl ring-1 sm:h-[30rem] lg:h-[34rem] ${picking ? 'ring-2 ring-accent-400' : 'ring-black/5 dark:ring-white/10'}`}>
       <Suspense fallback={<Loading label="Xarita yuklanmoqda..." />}>
-        <MosqueMap center={location} radius={radiusKm * 1000} mosques={mosques} activeId={activeId} onSelect={setActiveId} />
+        <MosqueMap
+          center={location}
+          radius={radiusKm * 1000}
+          mosques={mosques}
+          activeId={activeId}
+          onSelect={setActiveId}
+          picking={picking}
+          onPick={(p) => {
+            setPicking(false);
+            setActiveId(null);
+            onPickLocation(p);
+          }}
+        />
       </Suspense>
+      {picking && (
+        <p className="pointer-events-none absolute inset-x-3 top-3 z-[500] rounded-xl bg-primary-900/90 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg">
+          Turgan joyingizni xaritada bosing yoki ko‘k belgini sudrang
+        </p>
+      )}
     </div>
+  );
+
+  const status = (
+    <>
+      {loading && <Loading label="Yaqin masjidlar qidirilmoqda..." />}
+      {!loading && error && (
+        <div role="alert" className="rounded-2xl bg-rose-50 p-5 text-center ring-1 ring-rose-200 dark:bg-rose-500/10 dark:ring-rose-500/30">
+          <p className="text-sm text-rose-700 dark:text-rose-200">{error}</p>
+          <button type="button" onClick={retry} className="mt-3 min-h-[2.5rem] rounded-full bg-rose-600 px-5 text-sm font-semibold text-white transition hover:bg-rose-700">
+            Qayta urinish
+          </button>
+        </div>
+      )}
+      {ready && mosques.length === 0 && (
+        <div className="rounded-2xl bg-neutral-50 p-6 text-center dark:bg-white/5">
+          <p className="font-semibold text-neutral-800 dark:text-neutral-100">{radiusKm} km radiusda masjid topilmadi</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            {radiusKm < 3 ? 'Kattaroq radiusni tanlab ko‘ring. ' : ''}Ma'lumotlar OpenStreetMap xaritasidan olinadi — ba'zi masjidlar unda belgilanmagan bo‘lishi mumkin.
+          </p>
+        </div>
+      )}
+      {ready && mosques.length > 0 && list}
+    </>
   );
 
   return (
@@ -132,7 +199,25 @@ export function NearbyMosques({ location }: { location: LatLon }) {
             <p className="text-sm text-neutral-500 dark:text-neutral-400">Joylashuvingizga eng yaqin masjidlarni toping</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <button
+            type="button"
+            onClick={() => {
+              setPicking((v) => !v);
+              setView('map');
+            }}
+            aria-pressed={picking}
+            className={`inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold ring-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+              picking
+                ? 'bg-accent-400 text-primary-900 ring-accent-400'
+                : 'bg-white text-primary-800 ring-primary-500/30 hover:ring-primary-500/60 dark:bg-neutral-800 dark:text-emerald-200 dark:ring-white/15'
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-5.1-7-11a7 7 0 1 1 14 0c0 5.9-7 11-7 11Z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+            </svg>
+            {picking ? 'Bekor qilish' : 'Joyimni xaritada belgilash'}
+          </button>
           <Segment
             label="Ko‘rinish"
             value={view}
@@ -160,37 +245,22 @@ export function NearbyMosques({ location }: { location: LatLon }) {
       </div>
 
       <div className="mt-5">
-        {loading && <Loading label="Yaqin masjidlar qidirilmoqda..." />}
-        {!loading && error && (
-          <div role="alert" className="rounded-2xl bg-rose-50 p-5 text-center ring-1 ring-rose-200 dark:bg-rose-500/10 dark:ring-rose-500/30">
-            <p className="text-sm text-rose-700 dark:text-rose-200">{error}</p>
-            <button type="button" onClick={retry} className="mt-3 min-h-[2.5rem] rounded-full bg-rose-600 px-5 text-sm font-semibold text-white transition hover:bg-rose-700">
-              Qayta urinish
-            </button>
-          </div>
-        )}
-        {ready && mosques.length === 0 && (
-          <div className="rounded-2xl bg-neutral-50 p-6 text-center dark:bg-white/5">
-            <p className="font-semibold text-neutral-800 dark:text-neutral-100">{radiusKm} km radiusda masjid topilmadi</p>
-            <p className="mt-1 text-sm text-neutral-500">
-              {radiusKm < 10 ? 'Kattaroq radiusni tanlab ko‘ring. ' : ''}Ma'lumotlar OpenStreetMap xaritasidan olinadi — ba'zi masjidlar unda belgilanmagan bo‘lishi mumkin.
-            </p>
-          </div>
-        )}
         {ready && mosques.length > 0 && (
-          <>
-            <p className="mb-3 text-sm text-neutral-500 dark:text-neutral-400" aria-live="polite">
-              {radiusKm} km radiusda {mosques.length} ta masjid topildi
-            </p>
-            {view === 'list' ? (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-                {list}
-                <div className="hidden lg:block">{map}</div>
-              </div>
-            ) : (
-              map
-            )}
-          </>
+          <p className="mb-3 text-sm text-neutral-500 dark:text-neutral-400" aria-live="polite">
+            {radiusKm} km radiusda {mosques.length} ta masjid topildi
+          </p>
+        )}
+        {/* Xarita har doim mavjud (joyni belgilash uchun ham); telefonda — Ro'yxat/Xarita almashadi */}
+        {view === 'list' && !picking ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+            <div>{status}</div>
+            <div className="hidden lg:block">{map}</div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {map}
+            {(loading || error) && status}
+          </div>
         )}
         <p className="mt-4 text-[11px] text-neutral-400">
           Masjidlar ma'lumoti: © OpenStreetMap hissadorlari (Overpass API). Masofa — to‘g‘ri chiziq bo‘yicha.

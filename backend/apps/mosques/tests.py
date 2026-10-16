@@ -145,3 +145,34 @@ class MosqueDatabaseTests(TestCase):
             services.sync_tile(40, 68)
         self.assertEqual(Mosque.objects.count(), 3)
         self.assertEqual(MosqueArea.objects.count(), 1)
+
+
+class MosqueImageTests(TestCase):
+    """Rasm faqat OSM teglarida bo'lsa ko'rsatiladi — o'ylab topilmaydi."""
+
+    def test_image_sources(self):
+        thumb = 'https://commons.wikimedia.org/wiki/Special:FilePath/Minor_mosque.jpg?width=320'
+        self.assertEqual(services._image({'wikimedia_commons': 'File:Minor mosque.jpg'}), thumb)
+        self.assertEqual(services._image({'image': 'https://commons.wikimedia.org/wiki/File:Minor_mosque.jpg'}), thumb)
+        self.assertEqual(services._image({'image': 'https://example.org/a.jpg'}), 'https://example.org/a.jpg')
+        self.assertEqual(services._image({'image': 'http://example.org/a.jpg'}), '')  # faqat https
+        self.assertEqual(services._image({'image': 'https://example.org/page'}), '')
+        self.assertEqual(services._image({}), '')
+
+    @mock.patch('apps.mosques.services.requests.get')
+    @mock.patch('apps.mosques.services.requests.post')
+    def test_wikidata_image_resolved_on_sync(self, post, get):
+        from .models import Mosque
+
+        post.return_value = _response(200, {'elements': [
+            {'type': 'node', 'id': 7, 'lat': 41.3, 'lon': 69.2, 'tags': {'name': 'Masjid', 'wikidata': 'Q42'}},
+            {'type': 'node', 'id': 8, 'lat': 41.3, 'lon': 69.21, 'tags': {'name': 'Rasmsiz'}},
+        ]})
+        get.return_value = _response(200, {'entities': {'Q42': {'claims': {'P18': [
+            {'mainsnak': {'datavalue': {'value': 'Some Mosque.jpg'}}}]}}}})
+        services.sync_tile(40, 68)
+        self.assertTrue(Mosque.objects.get(osm_id='node/7').image.endswith('Some_Mosque.jpg?width=320'))
+        self.assertEqual(Mosque.objects.get(osm_id='node/8').image, '')
+        res = self.client.get('/api/qibla/mosques/', {'lat': '41.300', 'lon': '69.200', 'radius': '1000'})
+        self.assertEqual(res.json()['mosques'][0]['image'][:40], 'https://commons.wikimedia.org/wiki/Speci')
+        self.assertNotIn('wikidata', res.json()['mosques'][0])

@@ -33,10 +33,10 @@ export const userIcon = L.divIcon({
 
 export const kaabaIcon = L.divIcon({
   className: '',
-  html: `<span class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#f7e3a3] to-[#a87818] shadow-lg ring-2 ring-white">
-    <span class="block h-4 w-4 rounded-[2px] bg-black" style="box-shadow: inset 0 3px 0 -1px #d4a531"></span></span>`,
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
+  html: `<span class="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#f7e3a3] to-[#a87818] p-[3px] shadow-lg ring-2 ring-white">
+    <span class="flex h-full w-full items-center justify-center rounded-full bg-[#062818]"><img src="/images/qibla/kaaba.webp" alt="" class="h-7 w-7" /></span></span>`,
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
 });
 
 const MOSQUE_SVG =

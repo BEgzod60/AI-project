@@ -82,10 +82,10 @@ export function QiblaCompass({ bearing, heading, aligned }: Props) {
           </g>
         )}
 
-        {/* Markaz: Ka'ba belgisi */}
-        <circle cx="100" cy="100" r="15" fill="url(#qc-gold)" />
-        <rect x="92" y="92" width="16" height="16" rx="1.5" fill="#111" />
-        <rect x="92" y="96" width="16" height="2" fill="#d4a531" />
+        {/* Markaz: Ka'ba */}
+        <circle cx="100" cy="100" r="19" fill="url(#qc-gold)" />
+        <circle cx="100" cy="100" r="16.5" fill="#062818" />
+        <image href="/images/qibla/kaaba.webp" x="87" y="86" width="26" height="26" preserveAspectRatio="xMidYMid meet" />
       </svg>
     </div>
   );

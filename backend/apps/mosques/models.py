@@ -14,6 +14,10 @@ class Mosque(models.Model):
     address = models.CharField('Manzil', max_length=255, blank=True)
     lat = models.FloatField('Kenglik', db_index=True)
     lon = models.FloatField('Uzunlik', db_index=True)
+    image = models.URLField(
+        'Rasm', max_length=500, blank=True,
+        help_text="OSM teglaridagi rasm (Wikimedia Commons'ning kichik nusxasi). O'ylab topilmaydi.",
+    )
     updated_at = models.DateTimeField('Yangilangan', auto_now=True)
 
     class Meta:

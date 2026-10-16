@@ -1,14 +1,21 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLayoutRegion } from '../../hooks/useTypedOutlet';
 import { Breadcrumb } from '../../components/namoz/Breadcrumb';
 import { Loading } from '../../components/common/Loading';
 import { REGION_COORDS } from '../../components/prayerTimes/clock';
 import { QiblaCompass } from '../../components/qibla/QiblaCompass';
 import { NearbyMosques } from '../../components/qibla/NearbyMosques';
+import { CityPicker } from '../../components/qibla/CityPicker';
 import { useCompass } from '../../components/qibla/useCompass';
 import { angleDiff, compassPoint, distanceMeters, formatDistance, initialBearing, type LatLon } from '../../components/qibla/geo';
 
 const QiblaMap = lazy(() => import('../../components/qibla/QiblaMap'));
+
+/** Joylashuvni aniqlash: shu aniqlikka (metr) yetguncha yoki shu vaqtgacha yangilanib boradi */
+const GEO_GOOD_ACCURACY = 30;
+const GEO_MAX_WAIT = 12000;
+/** Bundan katta xatolikda — ogohlantirish (kompyuterda IP/Wi-Fi orqali taxminiy aniqlanadi) */
+const GEO_WARN_ACCURACY = 300;
 
 /** Qibla bilan to'g'ri kelish chegarasi (±gradus) */
 const ALIGN_DEG = 5;
@@ -20,20 +27,15 @@ interface Place extends LatLon {
   label: string;
   /** Xaritadagi qisqa nom */
   short: string;
-  source: 'region' | 'gps';
+  /** Qo'lda tanlangan hudud (GPS'da — yo'q) */
+  region?: string;
+  source: 'region' | 'gps' | 'map';
   accuracy?: number;
 }
 
-const CITIES = Object.entries(REGION_COORDS).map(([region, c]) => ({
-  region,
-  label: c.city === region ? c.city : `${c.city} (${region})`,
-  lat: c.lat,
-  lon: c.lon,
-}));
-
 function regionPlace(region: string): Place {
   const c = REGION_COORDS[region] ?? REGION_COORDS.Toshkent;
-  return { lat: c.lat, lon: c.lon, label: c.city, short: c.city, source: 'region' };
+  return { lat: c.lat, lon: c.lon, label: c.city, short: c.city, region: REGION_COORDS[region] ? region : 'Toshkent', source: 'region' };
 }
 
 const GEO_ERRORS: Record<number, string> = {
@@ -66,6 +68,9 @@ export function QiblaPage() {
   const [place, setPlace] = useState<Place>(() => regionPlace(region));
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoWarn, setGeoWarn] = useState<string | null>(null);
+  const watchId = useRef<number | null>(null);
+  const watchTimer = useRef<number | null>(null);
   const [picking, setPicking] = useState(false);
   const [vibrate, setVibrate] = useState(false);
   const compass = useCompass();
@@ -105,8 +110,17 @@ export function QiblaPage() {
     if (sensorProblem) mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [sensorProblem]);
 
+  const stopWatch = useCallback(() => {
+    if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+    if (watchTimer.current !== null) window.clearTimeout(watchTimer.current);
+    watchId.current = null;
+    watchTimer.current = null;
+  }, []);
+  useEffect(() => stopWatch, [stopWatch]);
+
   const locate = () => {
     setGeoError(null);
+    setGeoWarn(null);
     if (!window.isSecureContext) {
       setGeoError('Joylashuvni aniqlash faqat xavfsiz (HTTPS) ulanishda ishlaydi. Shaharni qo‘lda tanlang.');
       setPicking(true);
@@ -117,10 +131,26 @@ export function QiblaPage() {
       setPicking(true);
       return;
     }
+    stopWatch();
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
+    let best: GeolocationPosition | null = null;
+
+    const finish = () => {
+      stopWatch();
+      setLocating(false);
+      if (best && best.coords.accuracy > GEO_WARN_ACCURACY) {
+        setGeoWarn(
+          `Joylashuv taxminiy (±${formatDistance(best.coords.accuracy)}). Kompyuterda joylashuv internet (IP yoki Wi-Fi) orqali ` +
+            'aniqlanadi va xato bo‘lishi mumkin. Aniq joyingizni pastdagi «Joyimni xaritada belgilash» tugmasi bilan ko‘rsating yoki telefondan foydalaning.',
+        );
+      }
+    };
+
+    // Bir necha soniya kuzatiladi: birinchi (ko'pincha taxminiy) natijadan keyin aniqrog'i keladi
+    watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
-        setLocating(false);
+        if (best && pos.coords.accuracy >= best.coords.accuracy) return;
+        best = pos;
         setPicking(false);
         // Aniq koordinatalar faqat sahifa xotirasida turadi — hech qayerda saqlanmaydi
         setPlace({
@@ -131,22 +161,50 @@ export function QiblaPage() {
           source: 'gps',
           accuracy: pos.coords.accuracy,
         });
+        if (pos.coords.accuracy <= GEO_GOOD_ACCURACY) finish();
       },
       (err) => {
+        if (best) return finish();
+        stopWatch();
         setLocating(false);
         setGeoError(GEO_ERRORS[err.code] ?? GEO_ERRORS[2]);
         setPicking(true);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: GEO_MAX_WAIT, maximumAge: 0 },
     );
+    watchTimer.current = window.setTimeout(() => {
+      if (best) finish();
+      else {
+        stopWatch();
+        setLocating(false);
+        setGeoError(GEO_ERRORS[3]);
+        setPicking(true);
+      }
+    }, GEO_MAX_WAIT);
   };
+
+  const pickOnMap = useCallback(
+    (p: LatLon) => {
+      stopWatch();
+      setLocating(false);
+      setGeoError(null);
+      setGeoWarn(null);
+      setPlace({ lat: p.lat, lon: p.lon, label: 'Xaritada belgilangan joy', short: 'Siz', source: 'map' });
+    },
+    [stopWatch],
+  );
 
   const chooseCity = (value: string) => {
     if (!REGION_COORDS[value]) return;
+    stopWatch();
+    setLocating(false);
+    setGeoWarn(null);
     setPlace(regionPlace(value));
     setPicking(false);
     setGeoError(null);
   };
+
+  const closePicker = useCallback(() => setPicking(false), []);
 
   const showMap = () => {
     compass.stop();
@@ -186,9 +244,10 @@ export function QiblaPage() {
         <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-900/80 to-primary-900/10 md:via-primary-900/60" />
         <div className="relative px-5 py-8 md:px-10 md:py-12">
           <Breadcrumb items={[{ label: 'Bosh sahifa', to: '/' }, { label: 'Qibla' }]} />
-          <h1 className="mt-4 font-display text-5xl font-extrabold md:text-6xl">
-            <span className="text-accent-400">Qibla</span>
-          </h1>
+          <div className="mt-4 flex items-center gap-3 md:gap-4">
+            <img src="/images/qibla/kaaba.webp" alt="" width={72} height={72} className="h-14 w-14 shrink-0 drop-shadow-[0_6px_14px_rgb(0_0_0/0.45)] md:h-[4.5rem] md:w-[4.5rem]" />
+            <h1 className="font-display text-5xl font-extrabold text-accent-400 md:text-6xl">Qibla</h1>
+          </div>
           <p className="mt-2 max-w-sm text-base leading-relaxed text-white/85 md:text-lg">
             Ka’ba tomon yo‘nalishni aniqlang va yaqin masjidlarni toping
           </p>
@@ -254,46 +313,41 @@ export function QiblaPage() {
         {/* Joylashuv */}
         <div className="flex flex-col gap-3">
           <div className="rounded-2xl ring-1 ring-black/5 dark:ring-white/10">
-            <div className="flex items-center gap-3 border-b border-neutral-100 p-4 dark:border-neutral-800">
+            <div className="flex flex-wrap items-center gap-3 border-b border-neutral-100 p-4 dark:border-neutral-800">
               <span className="text-primary-600 dark:text-emerald-300"><Icon d={ICONS.pin} className="h-6 w-6" /></span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[9rem] flex-1">
                 <p className="font-semibold leading-snug text-neutral-900 dark:text-white">{place.label}</p>
                 <p className="text-xs text-neutral-500">
                   {place.source === 'gps'
-                    ? `GPS orqali${place.accuracy ? ` · ±${formatDistance(place.accuracy)}` : ''}`
-                    : 'O‘zbekiston · shahar markazi bo‘yicha'}
+                    ? `Qurilma orqali${place.accuracy ? ` · aniqlik ±${formatDistance(place.accuracy)}` : ''}`
+                    : place.source === 'map'
+                      ? 'Siz xaritada ko‘rsatgan nuqta'
+                      : 'O‘zbekiston · shahar markazi bo‘yicha'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setPicking((v) => !v)}
                 aria-expanded={picking}
-                className="min-h-[2.5rem] shrink-0 rounded-xl bg-primary-50 px-3 text-sm font-semibold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-900/40 dark:text-emerald-300"
+                className={`inline-flex min-h-[2.5rem] shrink-0 items-center gap-1.5 rounded-full pl-1.5 pr-3 text-sm font-semibold shadow-sm ring-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                  picking
+                    ? 'bg-primary-700 text-white ring-primary-700'
+                    : 'bg-white text-primary-800 ring-primary-500/30 hover:ring-primary-500/60 dark:bg-neutral-800 dark:text-emerald-200 dark:ring-white/15'
+                }`}
               >
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full ${picking ? 'bg-white/15 text-accent-400' : 'bg-primary-900 text-accent-400'}`}>
+                  <Icon d={ICONS.pin} className="h-4 w-4" />
+                </span>
                 O‘zgartirish
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-3.5 w-3.5 transition-transform duration-300 ${picking ? 'rotate-180' : ''}`} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
               </button>
             </div>
 
             {picking && (
-              <div className="space-y-2 border-b border-neutral-100 p-4 motion-safe:animate-fade-in dark:border-neutral-800">
-                <label className="block text-xs font-semibold text-neutral-600 dark:text-neutral-300" htmlFor="qibla-city">
-                  Shaharni tanlang
-                </label>
-                <select
-                  id="qibla-city"
-                  defaultValue=""
-                  onChange={(e) => chooseCity(e.target.value)}
-                  className="min-h-[2.75rem] w-full rounded-xl bg-white px-3 text-sm font-semibold text-neutral-800 ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-white/15"
-                >
-                  <option value="" disabled>
-                    Shahar...
-                  </option>
-                  {CITIES.map((c) => (
-                    <option key={c.region} value={c.region}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="border-b border-neutral-100 p-3 dark:border-neutral-800">
+                <CityPicker value={place.source === 'region' ? place.region ?? null : null} onChange={chooseCity} onClose={closePicker} />
               </div>
             )}
 
@@ -329,8 +383,14 @@ export function QiblaPage() {
             className="inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-2xl bg-accent-400 px-4 text-sm font-bold text-primary-900 shadow-sm transition hover:bg-accent-500 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             {locating ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-900/30 border-t-primary-900" /> : <Icon d={ICONS.target} />}
-            {locating ? 'Aniqlanmoqda...' : 'Joylashuvimni aniqlash'}
+            {locating ? (place.source === 'gps' ? 'Aniqlik oshirilmoqda...' : 'Aniqlanmoqda...') : 'Joylashuvimni aniqlash'}
           </button>
+
+          {geoWarn && (
+            <p role="status" className="rounded-2xl bg-amber-50 p-3 text-sm leading-relaxed text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:ring-amber-500/30">
+              {geoWarn}
+            </p>
+          )}
 
           {geoError && (
             <p role="alert" className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/30">
@@ -353,7 +413,7 @@ export function QiblaPage() {
       </section>
 
       {/* ===== Yaqin masjidlar ===== */}
-      <NearbyMosques location={location} />
+      <NearbyMosques location={location} onPickLocation={pickOnMap} />
     </div>
   );
 }

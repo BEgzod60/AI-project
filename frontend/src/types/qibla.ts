@@ -7,6 +7,8 @@ export interface Mosque {
   address: string;
   lat: number;
   lon: number;
+  /** OSM teglaridagi rasm (Wikimedia'ning kichik nusxasi) — bo'lmasa bo'sh */
+  image: string;
   /** Joylashuvdan to'g'ri chiziqli masofa, metr */
   distance_m: number;
 }

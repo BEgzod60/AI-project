@@ -12,6 +12,7 @@
 """
 import math
 import time
+from urllib.parse import quote, unquote
 
 import requests
 from django.core.cache import cache
@@ -45,8 +46,19 @@ SYNC_QUERY_TIMEOUT = 120
 SYNC_REQUEST_TIMEOUT = 150
 # O'zbekiston chegaralari (janub, g'arb, shimol, sharq)
 UZBEKISTAN_BBOX = (37.17, 55.99, 45.59, 73.15)
+# Viloyat markazlari — shu nuqtalar joylashgan kataklar birinchi yuklanadi (aholi zich joylar)
+PRIORITY_POINTS = [
+    (41.2995, 69.2401), (40.7821, 72.3442), (39.7681, 64.4556), (40.3864, 71.7864), (40.1158, 67.8422),
+    (40.9983, 71.6726), (40.0844, 65.3792), (38.8606, 65.7891), (42.4531, 59.6103), (39.6542, 66.9597),
+    (40.4897, 68.7842), (37.2242, 67.2783), (41.3783, 60.3639),
+]
 
-RADII = (1000, 3000, 5000, 10000)
+# Rasmlar: faqat OSM teglarida ko'rsatilgani (image, wikimedia_commons, wikidata -> P18).
+# Wikimedia Commons'ning kichik (siqilgan) nusxasi ishlatiladi.
+THUMB_WIDTH = 320
+WIKIDATA_API = 'https://www.wikidata.org/w/api.php'
+
+RADII = (1000, 3000)
 CACHE_TTL = 60 * 30
 FAIL_TTL = 60
 
@@ -148,6 +160,57 @@ def _name(tags):
     return ''
 
 
+def commons_thumb(filename, width=THUMB_WIDTH):
+    """Commons fayl nomi -> kichik nusxa havolasi (Wikimedia o'zi siqib beradi)."""
+    name = unquote(filename).strip()
+    if name.lower().startswith('file:'):
+        name = name[5:]
+    name = name.replace(' ', '_')
+    if not name:
+        return ''
+    return f'https://commons.wikimedia.org/wiki/Special:FilePath/{quote(name)}?width={width}'
+
+
+def _image(tags):
+    commons = tags.get('wikimedia_commons', '')
+    if commons.lower().startswith('file:'):
+        return commons_thumb(commons)
+    image = tags.get('image', '').strip()
+    if not image:
+        return ''
+    if image.lower().startswith('file:'):
+        return commons_thumb(image)
+    if 'commons.wikimedia.org/wiki/' in image and 'File:' in image:
+        return commons_thumb(image.split('File:', 1)[1])
+    if image.startswith('https://') and image.lower().split('?')[0].endswith(('.jpg', '.jpeg', '.png', '.webp')):
+        return image[:500]
+    return ''
+
+
+def resolve_wikidata_images(ids):
+    """Wikidata ID -> rasm (P18) kichik nusxasi. Xato bo'lsa — bo'sh (rasm shart emas)."""
+    result = {}
+    ids = [i for i in dict.fromkeys(ids) if i and i.startswith('Q')]
+    for start in range(0, len(ids), 50):
+        chunk = ids[start:start + 50]
+        try:
+            response = requests.get(
+                WIKIDATA_API,
+                params={'action': 'wbgetentities', 'ids': '|'.join(chunk), 'props': 'claims', 'format': 'json'},
+                timeout=20, headers={'User-Agent': USER_AGENT},
+            )
+            entities = response.json().get('entities', {}) if response.status_code == 200 else {}
+        except (requests.exceptions.RequestException, ValueError):
+            continue
+        for qid, entity in entities.items():
+            for claim in entity.get('claims', {}).get('P18', []):
+                filename = claim.get('mainsnak', {}).get('datavalue', {}).get('value')
+                if isinstance(filename, str):
+                    result[qid] = commons_thumb(filename)
+                    break
+    return result
+
+
 def _address(tags):
     if tags.get('addr:full'):
         return tags['addr:full'].strip()
@@ -171,8 +234,20 @@ def _parse(data):
             'address': _address(tags),
             'lat': point['lat'],
             'lon': point['lon'],
+            'image': _image(tags),
+            'wikidata': tags.get('wikidata', ''),
         }
     return list(mosques.values())
+
+
+def _add_wikidata_images(items):
+    missing = [m['wikidata'] for m in items if not m['image'] and m.get('wikidata')]
+    if missing:
+        images = resolve_wikidata_images(missing)
+        for m in items:
+            if not m['image'] and m.get('wikidata') in images:
+                m['image'] = images[m['wikidata']]
+    return items
 
 
 def _snap(value):
@@ -191,12 +266,14 @@ def _tile_of(value):
 
 
 def tiles_for(south, west, north, east):
-    """To'rtburchakni qoplaydigan kataklar: [(janub, g'arb), ...]."""
-    return [
+    """To'rtburchakni qoplaydigan kataklar: [(janub, g'arb), ...] — viloyat markazlari bor kataklar oldin."""
+    tiles = [
         (s, w)
         for s in range(_tile_of(south), _tile_of(north) + 1, TILE_DEG)
         for w in range(_tile_of(west), _tile_of(east) + 1, TILE_DEG)
     ]
+    priority = {(_tile_of(lat), _tile_of(lon)) for lat, lon in PRIORITY_POINTS}
+    return sorted(tiles, key=lambda t: t not in priority)
 
 
 def is_covered(south, west, north, east):
@@ -211,7 +288,7 @@ def is_covered(south, west, north, east):
 def _from_db(south, west, north, east):
     rows = Mosque.objects.filter(lat__gte=south, lat__lte=north, lon__gte=west, lon__lte=east)
     return [
-        {'id': m.osm_id, 'name': m.name, 'address': m.address, 'lat': m.lat, 'lon': m.lon}
+        {'id': m.osm_id, 'name': m.name, 'address': m.address, 'lat': m.lat, 'lon': m.lon, 'image': m.image}
         for m in rows
     ]
 
@@ -221,12 +298,19 @@ def save_mosques(items):
     if not items:
         return 0
     Mosque.objects.bulk_create(
-        [Mosque(osm_id=m['id'], name=m['name'][:255], address=m['address'][:255], lat=m['lat'], lon=m['lon']) for m in items],
+        [
+            Mosque(osm_id=m['id'], name=m['name'][:255], address=m['address'][:255], lat=m['lat'], lon=m['lon'],
+                   image=m.get('image', '')[:500])
+            for m in items
+        ],
         update_conflicts=True,
         unique_fields=['osm_id'],
-        update_fields=['name', 'address', 'lat', 'lon', 'updated_at'],
+        update_fields=['name', 'address', 'lat', 'lon', 'image', 'updated_at'],
     )
     return len(items)
+
+
+PUBLIC_FIELDS = ('id', 'name', 'address', 'lat', 'lon', 'image')
 
 
 def _with_distance(items, lat, lon, radius):
@@ -234,7 +318,7 @@ def _with_distance(items, lat, lon, radius):
     for m in items:
         dist = distance_m(lat, lon, m['lat'], m['lon'])
         if dist <= radius:
-            result.append({**m, 'distance_m': round(dist)})
+            result.append({**{k: m.get(k, '') for k in PUBLIC_FIELDS}, 'distance_m': round(dist)})
     return sorted(result, key=lambda m: m['distance_m'])
 
 
@@ -263,6 +347,7 @@ def sync_tile(south, west):
     north, east = south + TILE_DEG, west + TILE_DEG
     data = _fetch(_bbox_query(south, west, north, east), budget=SYNC_REQUEST_TIMEOUT * 2, request_timeout=SYNC_REQUEST_TIMEOUT)
     items = [m for m in _parse(data) if south <= m['lat'] < north and west <= m['lon'] < east]
+    _add_wikidata_images(items)
     with transaction.atomic():
         save_mosques(items)
         Mosque.objects.filter(lat__gte=south, lat__lt=north, lon__gte=west, lon__lt=east).exclude(
