@@ -16,4 +16,5 @@ export const SEARCH_PAGES = [
   { label: 'Namoz', to: '/namoz', keywords: 'namoz tahorat g‘usl tayammum suralar duolar' },
   { label: 'Namoz vaqtlari', to: '/namoz-vaqtlari', keywords: 'namoz vaqtlari bomdod peshin asr shom xufton taqvim qibla hijriy' },
   { label: 'Iymon', to: '/iymon', keywords: 'iymon aqida din shariat halol harom' },
+  { label: 'Qibla', to: '/qibla', keywords: 'qibla ka’ba kaaba yo‘nalish kompas masjid yaqin masjidlar' },
 ];

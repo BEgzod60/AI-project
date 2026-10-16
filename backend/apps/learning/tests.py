@@ -285,3 +285,7 @@ class StepImageFilesTests(TestCase):
         self.assertTrue(images_for('Uch zoid takbir', 'hayit'))
         self.assertEqual(images_for('Xutba', 'hayit'), [])
         self.assertEqual(images_for('Rakatlari', 'tahajjud'), [])
+        # Juma — faqat erkaklar rasmlari
+        juma = images_for('Salom', 'juma')
+        self.assertEqual(len(juma), 2)
+        self.assertFalse(any('src_female' in i for i in juma))

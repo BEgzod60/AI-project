@@ -15,6 +15,7 @@ const IymonTopicPage = lazy(() => import('./pages/Iymon/IymonTopicPage').then((m
 const SearchPage = lazy(() => import('./pages/Search/SearchPage').then((m) => ({ default: m.SearchPage })));
 const LearningPage = lazy(() => import('./pages/Learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const AiAssistantPage = lazy(() => import('./pages/AiAssistant/AiAssistantPage').then((m) => ({ default: m.AiAssistantPage })));
+const QiblaPage = lazy(() => import('./pages/Qibla/QiblaPage').then((m) => ({ default: m.QiblaPage })));
 const LessonPage = lazy(() => import('./pages/Learning/LessonPage').then((m) => ({ default: m.LessonPage })));
 
 /** Amalga oshirilgan: Bosh sahifa, Namoz, Namoz vaqtlari, Iymon, Qidiruv, Namozni o'rganish. */
@@ -35,7 +36,8 @@ export default function App() {
               <Route path="ai-yordamchi" element={<AiAssistantPage />} />
               <Route path="namoz-organish" element={<LearningPage />} />
               <Route path="namoz-organish/:slug" element={<LessonPage />} />
-              {/* Boshqa sahifalar (Qibla, Suralar, ...) keyingi bosqichlarda qo'shiladi */}
+              <Route path="qibla" element={<QiblaPage />} />
+              {/* Boshqa sahifalar (Suralar, ...) keyingi bosqichlarda qo'shiladi */}
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

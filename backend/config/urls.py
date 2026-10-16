@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/search/', search_view, name='search'),
     path('api/namoz-organish/', include('apps.learning.urls')),
     path('api/ai/', include('apps.ai.urls')),
+    path('api/qibla/', include('apps.mosques.urls')),
 ]

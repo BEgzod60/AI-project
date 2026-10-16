@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'apps.namoz',
     'apps.learning',
     'apps.ai',
+    'apps.mosques',
 ]
 
 MIDDLEWARE = [

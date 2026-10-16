@@ -74,10 +74,20 @@ Deploy oldidan rasmlarni tekshirish — bazadagi barcha rasm manzillari `fronten
 python manage.py check_images
 ```
 
+Yaqin masjidlar (Qibla sahifasi) bazadan beriladi — OpenStreetMap'dan bir marta yuklanadi
+(Overpass ishlamay qolsa ham sayt ishlaydi; `dumpdata` bilan Neon'ga ham ko'chadi):
+
+```bash
+python manage.py sync_mosques                 # O'zbekiston bo'yicha
+python manage.py sync_mosques --only-missing  # uzilib qolgan bo'lsa — qolgan kataklar
+```
+
 Namoz vaqtlari kuniga 1 marta yangilanishi uchun cron:
 
 ```
 0 3 * * * cd /path/to/backend && DATABASE_URL=postgres://... venv/bin/python manage.py sync_prayer_times
+# masjidlar — haftasiga bir marta
+0 4 * * 1 cd /path/to/backend && DATABASE_URL=postgres://... venv/bin/python manage.py sync_mosques
 ```
 
 ### Frontend

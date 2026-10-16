@@ -59,10 +59,28 @@ HAYIT = {
     'qa’da va salom': ['otirish', *SALOM],
 }
 
+# Juma namozi erkaklarga farz — faqat erkaklar rasmlari (ayollar rejimida umumiy rasm qoladi).
+# Tarkib va xutba qadamlari uchun mos rasm yo'q.
+JUMA = {
+    'farzdan oldingi to‘rt rakat sunnat': ['qiyom'],
+    'ikki rakat farz': ['qiyom'],
+    'takbiri tahrima': ['takbir'],
+    'qiyom va sano': ['qiyom'],
+    'qiroat': ['qiyom'],
+    'ruku’': ['ruku'],
+    'qavma (tik turish)': ['turish'],
+    'sajda': ['sajda'],
+    'jalsa va ikkinchi sajda': ['otirish', 'sajda'],
+    'ikkinchi rakat': ['qiyom'],
+    'qa’da (tashahhud)': ['otirish'],
+    'salom': SALOM,
+    'farzdan keyingi to‘rt rakat sunnat': ['qiyom'],
+}
 
-def _image(key):
+
+def _image(key, female=True):
     image = {'src': f'{BASE}/{key}.webp', 'caption': IMAGES[key]}
-    if key in FEMALE:
+    if female and key in FEMALE:
         image['src_female'] = f'{BASE}/{key}-ayol.webp'
     return image
 
@@ -72,6 +90,8 @@ def images_for(title, category_slug):
     t = title.lower().replace("'", '’')
     if category_slug == 'hayit':
         return [_image(k) for k in HAYIT.get(t, [])]
+    if category_slug == 'juma':
+        return [_image(k, female=False) for k in JUMA.get(t, [])]
     if category_slug not in PRAYERS:
         return []
     keys = OVERRIDES.get(t)
