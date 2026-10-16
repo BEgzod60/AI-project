@@ -11,7 +11,7 @@ class PrayerCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = PrayerCategory
         fields = [
-            'number', 'slug', 'name', 'icon', 'image', 'review_status',
+            'number', 'slug', 'name', 'group', 'icon', 'image', 'review_status',
             'description', 'rakats', 'rakat_breakdown', 'source_title', 'source_url',
         ]
 
@@ -80,7 +80,7 @@ class LessonStepSerializer(serializers.ModelSerializer):
         model = LessonStep
         fields = [
             'order', 'title', 'text', 'text_female', 'female_source_url', 'zam_sura_choice',
-            'recitations', 'source_title', 'source_url',
+            'recitations', 'images', 'source_title', 'source_url',
         ]
 
     def get_recitations(self, obj):

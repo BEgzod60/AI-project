@@ -6,13 +6,13 @@ from .models import AudioSource, LessonNote, LessonStep, PrayerCategory, Recitat
 
 @admin.register(PrayerCategory)
 class PrayerCategoryAdmin(admin.ModelAdmin):
-    list_display = ['number', 'name', 'rakats', 'review_status', 'reviewed_by', 'is_visible', 'updated_at']
+    list_display = ['number', 'name', 'group', 'rakats', 'review_status', 'reviewed_by', 'is_visible', 'updated_at']
     list_display_links = ['name']
-    list_filter = ['review_status', 'is_visible']
+    list_filter = ['group', 'review_status', 'is_visible']
     search_fields = ['name', 'description', 'rakats']
     prepopulated_fields = {'slug': ['name']}
     fieldsets = [
-        (None, {'fields': ['number', 'slug', 'name', 'icon', 'image', 'is_visible']}),
+        (None, {'fields': ['number', 'slug', 'name', 'group', 'icon', 'image', 'is_visible']}),
         ("Diniy ma'lumot", {'fields': ['description', 'rakats', 'rakat_breakdown']}),
         ('Manba', {'fields': ['source_title', 'source_url', 'source_quote']}),
         ('Tekshiruv', {

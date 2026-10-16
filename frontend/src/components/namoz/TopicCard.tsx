@@ -47,8 +47,8 @@ export function TopicCard({ topic, basePath = '/namoz' }: { topic: NamozTopic; b
         </span>
       </div>
 
-      <h3 className={`relative mt-3 font-display text-xl font-bold leading-snug ${topic.image ? 'max-w-[62%]' : 'max-w-[85%]'}`}>{topic.title}</h3>
-      <p className={`relative mt-2 text-sm leading-relaxed ${topic.image ? 'max-w-[58%]' : 'max-w-[90%]'} ${t.summary}`}>{topic.summary}</p>
+      <h3 className={`relative mt-3 font-display text-lg font-bold leading-snug sm:text-xl ${topic.image ? 'max-w-[75%] sm:max-w-[62%]' : 'max-w-[85%]'}`}>{topic.title}</h3>
+      <p className={`relative mt-2 text-sm leading-relaxed ${topic.image ? 'max-w-[68%] sm:max-w-[58%]' : 'max-w-[90%]'} ${t.summary}`}>{topic.summary}</p>
 
       <div className="relative mt-auto flex flex-wrap items-center gap-3 pt-5">
         <span className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${t.button}`}>

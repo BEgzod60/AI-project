@@ -64,7 +64,7 @@ export function HomePage() {
         <div
           aria-hidden
           className="absolute inset-0 bg-cover bg-[position:70%_center]"
-          style={{ backgroundImage: 'url(/images/mosque.png)' }}
+          style={{ backgroundImage: 'url(/images/mosque.webp)' }}
         />
         {/* Matn o'qilishi uchun chapdan qorong'i gradient */}
         <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-900/50 to-transparent" />

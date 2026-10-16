@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { SearchBar } from '../common/SearchBar';
-import { RegionSelect } from '../common/RegionSelect';
+import { RegionPicker } from '../prayerTimes/RegionPicker';
 import { LanguageSelect } from '../common/LanguageSelect';
 import { ThemeToggle } from '../common/ThemeToggle';
 
@@ -13,7 +13,7 @@ interface HeaderProps {
 export function Header({ region, onRegionChange, onMenuClick }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/90 px-4 py-3 backdrop-blur md:px-6 dark:border-neutral-800 dark:bg-neutral-900/90">
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {/* Mobil menyu tugmasi */}
         <button
           type="button"
@@ -38,8 +38,8 @@ export function Header({ region, onRegionChange, onMenuClick }: HeaderProps) {
             <path strokeLinecap="round" d="m20 20-3.5-3.5" />
           </svg>
         </Link>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <RegionSelect value={region} onChange={onRegionChange} />
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <RegionPicker value={region} onChange={onRegionChange} variant="compact" />
           <LanguageSelect />
           <ThemeToggle />
         </div>

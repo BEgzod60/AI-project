@@ -46,7 +46,7 @@ export function PrayerTimesPage() {
       {/* overflow-hidden faqat fon qatlamida — viloyat paneli hero'dan tashqariga chiqa olsin */}
       <section className="relative z-10 rounded-3xl bg-primary-900 text-white motion-safe:animate-fade-in-up">
         <div aria-hidden className="absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute inset-0 bg-cover bg-[position:70%_center]" style={{ backgroundImage: 'url(/images/mosque.png)' }} />
+          <div className="absolute inset-0 bg-cover bg-[position:70%_center]" style={{ backgroundImage: 'url(/images/mosque.webp)' }} />
           <div className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-900/85 to-primary-900/10" />
         </div>
         <div className="relative p-6 md:p-10">
@@ -103,12 +103,16 @@ export function PrayerTimesPage() {
             {months.error}
           </div>
         ) : months.data ? (
-          <WeekTable days={months.data} todayIso={now.iso} />
+          <div className="min-w-0">
+            <WeekTable days={months.data} todayIso={now.iso} />
+          </div>
         ) : (
           <Loading label="Jadval yuklanmoqda..." />
         )}
-        <MonthCalendar region={region} todayIso={now.iso} />
-        <div className="lg:col-span-2 xl:col-span-1">
+        <div className="min-w-0">
+          <MonthCalendar region={region} todayIso={now.iso} />
+        </div>
+        <div className="min-w-0 lg:col-span-2 xl:col-span-1">
           <InfoCards region={region} now={now} />
         </div>
       </div>

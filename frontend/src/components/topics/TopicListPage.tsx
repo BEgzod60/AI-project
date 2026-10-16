@@ -25,18 +25,18 @@ export function TopicListPage({ config }: { config: TopicCategoryConfig }) {
           <div className="max-w-2xl">
             <Breadcrumb items={[{ label: 'Bosh sahifa', to: '/' }, { label: config.label }]} />
             <div className="mt-5 flex items-center gap-4">
-              <img src="/images/iymon-logo.png" alt="" width={56} height={56} className="h-14 w-14 rounded-2xl shadow-lg" />
+              <img src="/images/iymon-logo.webp" alt="" width={56} height={56} className="h-14 w-14 rounded-2xl shadow-lg" />
               <h1 className="font-display text-4xl font-extrabold md:text-5xl">{config.label}</h1>
             </div>
             <p className="mt-5 text-base leading-relaxed text-white/85">{config.intro}</p>
           </div>
 
           {/* Qisqa ma'lumot paneli */}
-          <dl className="grid grid-cols-3 gap-2 rounded-2xl bg-black/25 p-2 text-center ring-1 ring-white/15 backdrop-blur-sm lg:w-80">
+          <dl className="grid grid-cols-3 gap-1 rounded-2xl bg-black/25 p-2 text-center ring-1 ring-white/15 backdrop-blur-sm lg:w-80">
             {config.stats.map((s, i) => (i === 0 && topics ? { ...s, value: String(topics.length) } : s)).map((s) => (
-              <div key={s.label} className="rounded-xl px-2 py-3">
+              <div key={s.label} className="rounded-xl px-1 py-3 sm:px-2">
                 <dt className="sr-only">{s.label}</dt>
-                <dd className="font-display text-base font-bold text-accent-400">{s.value}</dd>
+                <dd className="font-display text-sm font-bold text-accent-400 sm:text-base">{s.value}</dd>
                 <dd className="text-[11px] text-white/70">{s.label}</dd>
               </div>
             ))}

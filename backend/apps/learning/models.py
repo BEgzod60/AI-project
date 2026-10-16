@@ -21,6 +21,14 @@ class PrayerCategory(models.Model):
         MOSQUE = 'mosque', 'Masjid'
         PEOPLE = 'people', 'Jamoa'
         DUA = 'dua', 'Duo'
+        DROPLET = 'droplet', 'Tomchi (tahorat)'
+        WAVES = 'waves', 'To\u2018lqin (g\u2018usl)'
+        CLOCK = 'clock', 'Soat (qazo)'
+        SHIELD = 'shield', 'Qalqon (xatolar)'
+
+    class Group(models.TextChoices):
+        NAMOZ = 'namoz', 'Namozlar'
+        MAVZU = 'mavzu', 'Poklanish va qo\u2018shimcha darslar'
 
     class ReviewStatus(models.TextChoices):
         DRAFT = 'draft', 'Qoralama'
@@ -30,6 +38,7 @@ class PrayerCategory(models.Model):
     number = models.PositiveSmallIntegerField('Tartib raqami', unique=True)
     slug = models.SlugField('URL nomi', max_length=60, unique=True)
     name = models.CharField('Nomi', max_length=100)
+    group = models.CharField('Guruh', max_length=10, choices=Group.choices, default=Group.NAMOZ)
     icon = models.CharField('Ikonka', max_length=20, choices=Icon.choices)
     description = models.CharField('Qisqa tavsif', max_length=255, blank=True)
     rakats = models.CharField(
@@ -247,6 +256,10 @@ class LessonStep(ReviewedContent):
     female_source_url = models.URLField('Ayollar farqi manbasi', blank=True)
     recitations = models.ManyToManyField(Recitation, blank=True, related_name='steps', verbose_name='O‘qiladigan sura/duolar')
     zam_sura_choice = models.BooleanField('Zam surani tanlash mumkin', default=False)
+    images = models.JSONField(
+        'Rasmlar', default=list, blank=True,
+        help_text='[{"src": "/images/namoz/qadam/sajda.webp", "caption": "Sajda"}, ...] — birinchisi asosiy rasm.',
+    )
 
     class Meta:
         ordering = ['category', 'order', 'id']
@@ -265,6 +278,7 @@ class LessonNote(ReviewedContent):
         SUNNAT_FARZ = 'sunnat_farz', 'Sunnat va farz'
         TIME = 'vaqti', 'Vaqti'
         FAQ = 'savol_javob', 'Savol-javob'
+        TIPS = 'maslahat', 'Maslahatlar'
 
     category = models.ForeignKey(PrayerCategory, on_delete=models.CASCADE, related_name='notes', verbose_name='Namoz turi')
     tab = models.CharField('Tab', max_length=20, choices=Tab.choices)

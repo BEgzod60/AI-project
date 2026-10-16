@@ -51,7 +51,7 @@ export function MonthCalendar({ region, todayIso }: Props) {
 
   return (
     <section className="flex flex-col rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-neutral-900 dark:text-white">Oylik taqvim</h2>
         <div className="flex items-center gap-1 rounded-full bg-neutral-100 p-1 dark:bg-neutral-800">
           <button

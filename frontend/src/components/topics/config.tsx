@@ -24,7 +24,7 @@ export const NAMOZ_CONFIG: TopicCategoryConfig = {
   basePath: '/namoz',
   label: 'Namoz',
   icon: 'mosque',
-  heroImage: '/images/mosque.png',
+  heroImage: '/images/mosque.webp',
   intro: (
     <>
       Bu bo'limda poklanishdan tortib namozning o'qilish tartibi, duolar, qazo namozlari va turli
@@ -49,7 +49,7 @@ export const IYMON_CONFIG: TopicCategoryConfig = {
   basePath: '/iymon',
   label: 'Iymon',
   icon: 'heart',
-  heroImage: '/images/quran-sidebar.png',
+  heroImage: '/images/quran-sidebar.webp',
   intro: (
     <>
       Bu bo'limda din va shariat tushunchalari, iymon asoslari — Allohga, farishtalarga, kitoblarga,

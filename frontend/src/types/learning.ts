@@ -58,8 +58,17 @@ export interface LessonStep {
   female_source_url: string;
   zam_sura_choice: boolean;
   recitations: string[];
+  /** Qadam rasmlari: birinchisi asosiy, qolganlari qadam ichidagi keyingi harakatlar */
+  images: StepImage[];
   source_title: string;
   source_url: string;
+}
+
+export interface StepImage {
+  src: string;
+  caption: string;
+  /** Ayollar uchun alohida rasm (bo'lsa) */
+  src_female?: string;
 }
 
 export interface LessonNote {

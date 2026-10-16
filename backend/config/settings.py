@@ -4,7 +4,14 @@ Django settings for config project.
 import os
 from pathlib import Path
 
+import dj_database_url
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Muhit yoki loyiha ildizidagi `.env.local` (neon env pull shu yerga yozadi)
+load_dotenv(BASE_DIR / '..' / '.env.local')
+load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
@@ -31,6 +38,7 @@ INSTALLED_APPS = [
     'apps.prayer_times',
     'apps.namoz',
     'apps.learning',
+    'apps.ai',
 ]
 
 MIDDLEWARE = [
@@ -66,11 +74,14 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 # Database
 
+# DATABASE_URL berilsa (masalan, postgres://user:parol@host:5432/iymon) — PostgreSQL,
+# aks holda lokal ishlab chiqish uchun SQLite.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 # Password validation

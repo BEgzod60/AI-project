@@ -1,4 +1,9 @@
-"""Tashqi namoz vaqtlari xizmati (namoz-vaqtlari.more-info.uz).
+"""Namoz vaqtlari xizmati: o'z bazamiz + tashqi manba (namoz-vaqtlari.more-info.uz).
+
+Vaqtlar PrayerTime modelida saqlanadi. So'rov kelganda avval bazadan o'qiladi;
+oy bazada to'liq bo'lmasa, tashqi API'dan butun oy yuklab olinib saqlanadi.
+Tashqi API ishlamay qolsa — bazadagi ma'lumot qaytariladi.
+Oldindan to'ldirish: `python manage.py sync_prayer_times` (cron orqali kuniga 1 marta).
 
 Manba: https://namoz-vaqtlari-api.more-info.uz/ (ma'lumotlar islom.uz asosida, 07-2024 dan)
 - Kunlik:  GET /api/GetDailyPrayTimes/{region}/{YYYY-MM-DD}
@@ -8,6 +13,7 @@ Manba: https://namoz-vaqtlari-api.more-info.uz/ (ma'lumotlar islom.uz asosida, 0
 Javob formati: {"isSuccess": true, "statusCode": 200, "response": {...} | [...]}
 Vaqtlar 'HH:MM:SS' ko'rinishida keladi — biz 'HH:MM' ga qisqartiramiz.
 """
+import calendar
 import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
@@ -16,9 +22,12 @@ from zoneinfo import ZoneInfo
 import requests
 from django.core.cache import cache
 
+from .models import PrayerTime
+
 API_BASE = 'https://namoz-vaqtlari.more-info.uz:444/api'
 REQUEST_TIMEOUT = 10
-CACHE_TTL = 60 * 60 * 6  # vaqtlar kun davomida o'zgarmaydi
+# Manbada oy topilmasa yoki u ishlamasa, qayta urinishgacha kutiladigan vaqt
+MISS_TTL = 60 * 30
 TIMEZONE = ZoneInfo('Asia/Tashkent')
 
 # API qo'llab-quvvatlaydigan hududlar (aynan shu yozilishda yuboriladi)
@@ -92,10 +101,6 @@ def today_local():
 
 
 def _request(path):
-    cached = cache.get(path)
-    if cached is not None:
-        return cached
-
     try:
         response = requests.get(f'{API_BASE}{path}', timeout=REQUEST_TIMEOUT)
         data = response.json()
@@ -116,33 +121,108 @@ def _request(path):
         raise PrayerTimesServiceError(
             'Tanlangan sana uchun namoz vaqtlari topilmadi.'
         )
-
-    result = data.get('response')
-    cache.set(path, result, CACHE_TTL)
-    return result
+    return data.get('response')
 
 
-def _short_time(value):
-    """'05:16:00' -> '05:16'."""
-    return value[:5] if value else ''
+def _parse_time(value):
+    """'05:16:00' -> time(5, 16)."""
+    return dt.time.fromisoformat(value[:5])
 
 
-def _timings(item):
-    return {key: _short_time(item.get(key, '')) for key in PRAYER_KEYS}
-
-
-def _month_days(items):
-    """Oylik ro'yxatni kunlarga aylantiradi.
+def fetch_month(region, year, month):
+    """Tashqi API'dan bir oylik vaqtlarni oladi (bazaga yozmaydi).
 
     Manba ba'zi oylarda bir sanani ikki marta qaytaradi (ikkinchisi — boshqa oyning
     ma'lumoti). Kunlik endpoint birinchi yozuvni qaytaradi, biz ham shuni olamiz.
     """
-    days = {}
+    items = _request(f'/GetMonthlyPrayTimes/{quote(region)}/{year:04d}-{month:02d}')
+    if not isinstance(items, list):
+        return []
+
+    rows = {}
     for item in items:
-        date = item.get('date')
-        if date and date not in days:
-            days[date] = {'date': date, 'timings': _timings(item)}
-    return [days[d] for d in sorted(days)]
+        try:
+            date = dt.date.fromisoformat(item.get('date', ''))
+            times = {key: _parse_time(item[key]) for key in PRAYER_KEYS}
+        except (KeyError, TypeError, ValueError):
+            continue
+        if (date.year, date.month) == (year, month) and date not in rows:
+            # Birinchi yozuv buzuq bo'lsa ham sana band qilinadi — dublikat boshqa oyniki
+            rows[date] = PrayerTime(region=region, date=date, **times) if _is_valid(times) else None
+    return [row for row in rows.values() if row is not None]
+
+
+def _is_valid(times):
+    """Manbada ba'zi oylarda ustunlar siljigan (peshin o'rnida ishroq vaqti, xufton yo'q).
+
+    Bunday kunlarni saqlamaymiz: vaqtlar o'sish tartibida va peshin kun o'rtasida bo'lishi kerak.
+    """
+    values = [times[key] for key in PRAYER_KEYS]
+    in_order = all(a < b for a, b in zip(values, values[1:]))
+    return in_order and dt.time(11, 0) <= times['peshin'] <= dt.time(14, 0)
+
+
+def save_month(rows):
+    """Oy yozuvlarini bazaga yozadi (mavjudlari yangilanadi)."""
+    if not rows:
+        return 0
+    PrayerTime.objects.bulk_create(
+        rows,
+        update_conflicts=True,
+        unique_fields=['region', 'date'],
+        update_fields=list(PRAYER_KEYS) + ['updated_at'],
+    )
+    return len(rows)
+
+
+def sync_month(region, year, month):
+    """Oyni manbadan yuklab bazaga saqlaydi. Saqlangan kunlar sonini qaytaradi."""
+    return save_month(fetch_month(region, year, month))
+
+
+def _miss_key(region, year, month):
+    return f'prayer_times:miss:{region}:{year:04d}-{month:02d}'
+
+
+def _db_month(region, year, month):
+    return list(PrayerTime.objects.filter(region=region, date__year=year, date__month=month))
+
+
+def _month_rows(region, year, month):
+    """Oy yozuvlari: bazadan, kerak bo'lsa manbadan to'ldirib."""
+    rows = _db_month(region, year, month)
+    if len(rows) >= calendar.monthrange(year, month)[1]:
+        return rows
+
+    # Yaqinda topilmagan bo'lsa, manbani qayta-qayta bezovta qilmaymiz
+    if cache.get(_miss_key(region, year, month)):
+        return rows
+
+    try:
+        fetched = fetch_month(region, year, month)
+    except PrayerTimesServiceError:
+        cache.set(_miss_key(region, year, month), True, MISS_TTL)
+        if rows:
+            return rows
+        raise
+
+    if not fetched:
+        cache.set(_miss_key(region, year, month), True, MISS_TTL)
+        return rows
+
+    save_month(fetched)
+    return _db_month(region, year, month)
+
+
+def _timings(row):
+    return {key: getattr(row, key).strftime('%H:%M') for key in PRAYER_KEYS}
+
+
+def _month_days(rows):
+    return [
+        {'date': row.date.isoformat(), 'timings': _timings(row)}
+        for row in sorted(rows, key=lambda r: r.date)
+    ]
 
 
 def _upcoming(timings, date):
@@ -164,13 +244,13 @@ def get_prayer_times(city=None, date_str=None):
         dt.datetime.strptime(date_str, '%d-%m-%Y').date() if date_str else today_local()
     )
 
-    item = _request(f'/GetDailyPrayTimes/{quote(region)}/{date.isoformat()}')
-    if not isinstance(item, dict):
+    row = next((r for r in _month_rows(region, date.year, date.month) if r.date == date), None)
+    if row is None:
         raise PrayerTimesServiceError(
             "Bu sana uchun namoz vaqtlari hali e'lon qilinmagan."
         )
 
-    timings = _timings(item)
+    timings = _timings(row)
     return {
         'city': region,
         'date': date.isoformat(),
@@ -184,8 +264,8 @@ def get_prayer_times(city=None, date_str=None):
 def get_monthly_prayer_times(city, month, year):
     """Oylik namoz vaqtlari jadvali."""
     region = parse_city(city)
-    items = _request(f'/GetMonthlyPrayTimes/{quote(region)}/{year:04d}-{month:02d}')
-    if not isinstance(items, list) or not items:
+    rows = _month_rows(region, year, month)
+    if not rows:
         raise PrayerTimesServiceError(
             "Bu oy uchun namoz vaqtlari hali e'lon qilinmagan."
         )
@@ -194,7 +274,7 @@ def get_monthly_prayer_times(city, month, year):
         'city': region,
         'month': month,
         'year': year,
-        'days': _month_days(items),
+        'days': _month_days(rows),
     }
 
 
@@ -202,23 +282,36 @@ def get_yearly_prayer_times(city, year):
     """Yil bo'yicha namoz vaqtlari: faqat e'lon qilingan oylar qaytariladi."""
     region = parse_city(city)
 
+    by_month = {m: [] for m in range(1, 13)}
+    for row in PrayerTime.objects.filter(region=region, date__year=year):
+        by_month[row.date.month].append(row)
+
+    missing = [
+        m for m in range(1, 13)
+        if len(by_month[m]) < calendar.monthrange(year, m)[1]
+        and not cache.get(_miss_key(region, year, m))
+    ]
+
     def fetch(month):
         try:
-            items = _request(f'/GetMonthlyPrayTimes/{quote(region)}/{year:04d}-{month:02d}')
+            return month, fetch_month(region, year, month)
         except PrayerTimesServiceError:
             return month, None
-        return month, items if isinstance(items, list) and items else None
 
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        results = list(pool.map(fetch, range(1, 13)))
+    # Tarmoq so'rovlari parallel, bazaga yozish — asosiy oqimda
+    if missing:
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            for month, fetched in pool.map(fetch, missing):
+                if fetched:
+                    save_month(fetched)
+                    by_month[month] = _db_month(region, year, month)
+                else:
+                    cache.set(_miss_key(region, year, month), True, MISS_TTL)
 
     months = [
-        {
-            'month': month,
-            'days': _month_days(items),
-        }
-        for month, items in results
-        if items
+        {'month': month, 'days': _month_days(rows)}
+        for month, rows in by_month.items()
+        if rows
     ]
     if not months:
         raise PrayerTimesServiceError(

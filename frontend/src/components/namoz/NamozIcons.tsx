@@ -76,10 +76,9 @@ const paths: Record<TopicIcon, ReactNode> = {
   // Sajda — yer va egilgan yoy
   sajda: (
     <>
-      <path strokeLinecap="round" d="M3 20h18" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 20c0-5 3-9 7-9s7 4 7 9" />
-      <circle cx="7" cy="17.5" r="1.5" />
-      <path strokeLinecap="round" d="M12 3v4M9.5 5h5" />
+      <path strokeLinecap="round" d="M3 17h18" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 17c0-5 3-9 7-9s7 4 7 9" />
+      <circle cx="7" cy="14.5" r="1.5" />
     </>
   ),
   // Fonar — ibratli namozlar

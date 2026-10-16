@@ -24,18 +24,19 @@ const navItems: NavItem[] = [
   { to: '/namoz-vaqtlari', icon: <ClockIcon />, label: 'Namoz vaqtlari' },
   { to: '/iymon', icon: <BookIcon />, label: 'Iymon' },
   { to: '/namoz-organish', icon: <GraduateIcon />, label: "Namoz o'rganish" },
+  { to: '/ai-yordamchi', icon: <InfoIcon />, label: 'AI yordamchisi' },
   { to: '/qibla', icon: <CompassIcon />, label: 'Qibla' },
   { to: '/suralar', icon: <SurahIcon />, label: 'Suralar va zam suralar' },
   { to: '/loyiha-haqida', icon: <InfoIcon />, label: 'Loyiha haqida' },
 ];
 
-export function Sidebar({ open }: { open?: boolean }) {
+export function Sidebar({ open, onNavigate }: { open?: boolean; onNavigate?: () => void }) {
   return (
     <aside
       className={`${
         open ? 'translate-x-0' : '-translate-x-full'
       } fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-hidden bg-primary-900 bg-cover bg-center text-white transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:self-start lg:translate-x-0`}
-      style={{ backgroundImage: 'url(/images/quran-sidebar.png)' }}
+      style={{ backgroundImage: 'url(/images/quran-sidebar.webp)' }}
     >
       {/* Butun sidebar bo'ylab rasm ustida qorong'i qatlam: tepada menyu o'qilishi uchun quyuqroq */}
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary-900/90 via-primary-900/70 to-black/40" />
@@ -43,7 +44,7 @@ export function Sidebar({ open }: { open?: boolean }) {
       {/* Logotip */}
       <div className="relative flex items-center gap-3 px-5 py-5">
         <img
-          src="/images/iymon-logo.png"
+          src="/images/iymon-logo.webp"
           alt="Iymon logotipi"
           width={44}
           height={44}
@@ -63,6 +64,7 @@ export function Sidebar({ open }: { open?: boolean }) {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onNavigate}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium ${
                 isActive ? 'bg-primary-500 text-white shadow-[0_0_12px_rgb(31_138_76/0.45)]' : 'nav-neon'
@@ -75,8 +77,8 @@ export function Sidebar({ open }: { open?: boolean }) {
         ))}
       </nav>
 
-      {/* Hadis bloki — sidebar foni ustida shaffof panel */}
-      <div className="relative mx-3 mb-4 flex flex-col items-center rounded-2xl bg-black/35 p-5 text-center ring-1 ring-white/15 backdrop-blur-sm">
+      {/* Hadis bloki — sidebar foni ustida shaffof panel; past ekranlarda (telefon) menyuga joy qoldirish uchun yashiriladi */}
+      <div className="relative mx-3 mb-4 flex shrink-0 flex-col [@media(max-height:700px)]:hidden items-center rounded-2xl bg-black/35 p-5 text-center ring-1 ring-white/15 backdrop-blur-sm">
         <QuoteIcon className="h-5 w-5 text-accent-400" />
         <p className="mt-2 text-sm italic leading-relaxed text-white drop-shadow">
           "Albatta, zikr qilish mo'minlarning qalblarini tinchlantiradi."

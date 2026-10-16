@@ -17,6 +17,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.learning.audio_check import check, is_reachable
+from apps.learning.step_images import images_for
 from apps.learning.models import (
     AudioSource, LessonNote, LessonStep, PrayerCategory, Recitation, ReviewStatus,
 )
@@ -472,7 +473,7 @@ class Command(BaseCommand):
                     title=title, text=self._cut(spec),
                     text_female=self._cut(female) if female else '',
                     female_source_url=self._meta(female[0])[1] if female else '',
-                    zam_sura_choice=zam, **self._published(spec[0]),
+                    zam_sura_choice=zam, images=images_for(title, slug), **self._published(spec[0]),
                 ))
                 step.recitations.set([recs[s] for s in rec_slugs])
                 keep.append(step.pk)

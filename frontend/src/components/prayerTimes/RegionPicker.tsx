@@ -7,6 +7,8 @@ const COLUMNS = 2;
 interface Props {
   value: string;
   onChange: (region: string) => void;
+  /** hero — qorong'i fon ustida (namoz vaqtlari sahifasi), compact — header uchun */
+  variant?: 'hero' | 'compact';
 }
 
 function PinIcon({ className }: { className: string }) {
@@ -19,7 +21,8 @@ function PinIcon({ className }: { className: string }) {
 }
 
 /** Viloyat tanlash: yumaloq "chip"lardan iborat ochiladigan panel (listbox) */
-export function RegionPicker({ value, onChange }: Props) {
+export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
+  const compact = variant === 'compact';
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, REGIONS.indexOf(value as (typeof REGIONS)[number])));
   const rootRef = useRef<HTMLDivElement>(null);
@@ -85,7 +88,7 @@ export function RegionPicker({ value, onChange }: Props) {
   };
 
   return (
-    <div ref={rootRef} className="relative min-w-[240px]">
+    <div ref={rootRef} className={compact ? 'relative' : 'relative min-w-[240px]'}>
       <button
         ref={buttonRef}
         type="button"
@@ -99,23 +102,42 @@ export function RegionPicker({ value, onChange }: Props) {
             setOpen(true);
           }
         }}
-        className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left ring-1 backdrop-blur-sm transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
-          open ? 'bg-white/20 ring-accent-400/70' : 'bg-white/10 ring-white/20 hover:bg-white/15 hover:ring-white/35'
-        }`}
+        aria-label={compact ? `Hudud: ${value}` : undefined}
+        className={
+          compact
+            ? `flex items-center gap-2 rounded-full border bg-white py-1.5 pl-1.5 pr-3 text-left shadow-sm transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 dark:bg-neutral-800 ${
+                open
+                  ? 'border-primary-400 ring-2 ring-primary-500/20 dark:border-primary-500'
+                  : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
+              }`
+            : `group flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left ring-1 backdrop-blur-sm transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
+                open ? 'bg-white/20 ring-accent-400/70' : 'bg-white/10 ring-white/20 hover:bg-white/15 hover:ring-white/35'
+              }`
+        }
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-400/15 text-accent-400 ring-1 ring-accent-400/30">
-          <PinIcon className="h-5 w-5" />
+        <span
+          className={
+            compact
+              ? 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-900 text-accent-400'
+              : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-400/15 text-accent-400 ring-1 ring-accent-400/30'
+          }
+        >
+          <PinIcon className={compact ? 'h-4 w-4' : 'h-5 w-5'} />
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11px] text-white/60">Hudud</span>
-          <span className="block truncate font-semibold text-white">{value}</span>
-        </span>
+        {compact ? (
+          <span className="max-w-[7.5rem] truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">{value}</span>
+        ) : (
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] text-white/60">Hudud</span>
+            <span className="block truncate font-semibold text-white">{value}</span>
+          </span>
+        )}
         <svg
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className={`h-4 w-4 text-white/70 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 transition-transform duration-300 ${compact ? 'text-neutral-400' : 'text-white/70'} ${open ? 'rotate-180' : ''}`}
           aria-hidden
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
@@ -123,7 +145,14 @@ export function RegionPicker({ value, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-40 mt-2 w-[min(92vw,26rem)] origin-top-left rounded-3xl bg-primary-900/95 p-3 shadow-2xl shadow-black/40 ring-1 ring-white/15 backdrop-blur-md motion-safe:animate-fade-in">
+        <div
+          className={`top-full z-40 mt-2 rounded-3xl ${
+            compact
+              ? // Mobilda header kengligida (header backdrop-blur — fixed uchun o'rab turuvchi blok), kattada tugma ostida o'ngda
+                'fixed inset-x-4 origin-top sm:absolute sm:inset-x-auto sm:right-0 sm:w-[26rem] sm:origin-top-right'
+              : 'absolute left-0 w-[min(92vw,26rem)] origin-top-left'
+          } bg-primary-900/95 p-3 shadow-2xl shadow-black/40 ring-1 ring-white/15 backdrop-blur-md motion-safe:animate-fade-in`}
+        >
           <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/50">Hududni tanlang</p>
           <ul
             id={listId}

@@ -207,23 +207,44 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
             </span>
           </div>
         </div>
+      </div>
 
-        <label className="shrink-0">
-          <span className="sr-only">Tezlik</span>
-          <select
-            value={speed}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setSpeed(v);
-              if (audioRef.current) audioRef.current.playbackRate = v;
-            }}
-            className="rounded-md bg-white px-1.5 py-1 text-[11px] font-semibold text-neutral-700 ring-1 ring-black/10 dark:bg-neutral-900 dark:text-neutral-200 dark:ring-white/10"
-          >
-            {SPEEDS.map((s) => (
-              <option key={s} value={s}>{s}×</option>
-            ))}
-          </select>
-        </label>
+      {/* Tezlik: ochiladigan ro'yxat o'rniga doim ko'rinadigan segmentli tugmalar */}
+      <div className="mt-2.5 flex items-center gap-2">
+        <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 13l4-4M4.5 18a9 9 0 1 1 15 0" />
+          </svg>
+          Tezlik
+        </span>
+        <div
+          role="radiogroup"
+          aria-label="Tinglash tezligi"
+          className="grid flex-1 grid-cols-4 gap-0.5 rounded-full bg-white p-0.5 ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10"
+        >
+          {SPEEDS.map((s) => {
+            const active = s === speed;
+            return (
+              <button
+                key={s}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => {
+                  setSpeed(s);
+                  if (audioRef.current) audioRef.current.playbackRate = s;
+                }}
+                className={`rounded-full py-1 text-[11px] font-bold tabular-nums transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                  active
+                    ? 'bg-gradient-to-br from-accent-400 to-accent-500 text-primary-900 shadow-sm'
+                    : 'text-neutral-600 hover:bg-primary-50 hover:text-primary-700 dark:text-neutral-300 dark:hover:bg-white/10'
+                }`}
+              >
+                {s}×
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {mode === 'verses' && verses && verses.length > 1 && (

@@ -171,7 +171,7 @@ export function SearchBar() {
         placeholder="Qidiruv... (namoz, sura, duo, mavzu...)"
         className="w-full rounded-full border border-neutral-200 bg-white py-2 pl-11 pr-16 text-sm shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary-500/60 focus:ring-2 focus:ring-primary-500/30 dark:border-neutral-700 dark:bg-neutral-800"
       />
-      <kbd className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900">
+      <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 sm:block dark:border-neutral-700 dark:bg-neutral-900">
         Ctrl K
       </kbd>
 

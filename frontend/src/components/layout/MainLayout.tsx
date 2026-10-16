@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { DEFAULT_REGION, REGIONS, REGION_STORAGE_KEY } from '../../utils/constants';
@@ -12,6 +12,20 @@ export function MainLayout() {
     return stored && (REGIONS as readonly string[]).includes(stored) ? stored : DEFAULT_REGION;
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  // Mobil menyu: sahifa almashganda (ortga tugmasi va h.k.) yopiladi
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Mobil menyu: Escape bilan yopiladi
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   // Hudud tanlovni localStorage'da saqlash
   useEffect(() => {
@@ -30,7 +44,7 @@ export function MainLayout() {
         />
       )}
 
-      <Sidebar open={menuOpen} />
+      <Sidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header

@@ -104,8 +104,8 @@ function TopicContent({ topic, config }: { topic: NamozTopicDetail; config: Topi
       </header>
 
       {hasSections ? (
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_260px] lg:items-start">
-          <div className="space-y-6">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
+          <div className="min-w-0 space-y-6">
             {topic.sections.map((section, i) => (
               <div key={section.id} className="motion-safe:animate-fade-in-up" style={{ animationDelay: `${100 + i * 70}ms` }}>
                 <SectionBlock section={section} />
@@ -124,7 +124,7 @@ function TopicContent({ topic, config }: { topic: NamozTopicDetail; config: Topi
       )}
 
       {/* ===== Oldingi / keyingi mavzu ===== */}
-      <nav aria-label="Boshqa mavzular" className="mt-8 grid gap-4 sm:grid-cols-3">
+      <nav aria-label="Boshqa mavzular" className="mt-8 grid gap-4 sm:grid-cols-3 [&>*]:min-w-0">
         {topic.previous ? <NeighbourLink topic={topic.previous} direction="prev" basePath={config.basePath} /> : <span className="hidden sm:block" />}
         <NavButton to={config.basePath} label="Bo‘limga qaytish" title={config.label} icon={<TopicIconSvg icon={config.icon} className="h-5 w-5" />} align="center" />
         {topic.next && <NeighbourLink topic={topic.next} direction="next" basePath={config.basePath} />}
@@ -228,7 +228,7 @@ function NavButton({ to, label, title, icon, align }: NavButtonProps) {
   return (
     <Link
       to={to}
-      className={`group flex items-center gap-4 rounded-2xl bg-primary-700 p-4 text-white shadow-sm ring-1 ring-primary-600 transition duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:ring-primary-500/50 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${layout}`}
+      className={`group flex min-w-0 items-center gap-4 rounded-2xl bg-primary-700 p-4 text-white shadow-sm ring-1 ring-primary-600 transition duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:ring-primary-500/50 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${layout}`}
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-primary-600 group-focus-visible:bg-primary-600">
         {icon}

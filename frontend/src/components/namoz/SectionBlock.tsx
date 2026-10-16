@@ -1,6 +1,11 @@
 import type { SourceReference, TopicSection } from '../../types/namoz';
 
 /** Matnni xatboshilarga ajratadi (har bir bo'sh bo'lmagan qator — alohida xatboshi) */
+/** Manba matnida so'zlar &nbsp; bilan zanjir qilib bog'langan — tor ekranda qatorga bo'linmay qoladi */
+function normalizeSpaces(html: string): string {
+  return html.replace(/&nbsp;|\u00a0/g, ' ');
+}
+
 function Paragraphs({ text, className = '' }: { text: string; className?: string }) {
   const parts = text.split('\n').map((p) => p.trim()).filter(Boolean);
   if (!parts.length) return null;
@@ -89,7 +94,7 @@ export function SectionBlock({ section }: { section: TopicSection }) {
       <Paragraphs text={section.body} className="mt-3" />
       {section.content_html && (
         // Backend nh3 bilan faqat ruxsat etilgan teglarni qoldiradi (apps/namoz/sanitize.py)
-        <div className="namoz-content mt-3" dangerouslySetInnerHTML={{ __html: section.content_html }} />
+        <div className="namoz-content mt-3" dangerouslySetInnerHTML={{ __html: normalizeSpaces(section.content_html) }} />
       )}
       {section.kind === 'steps' && section.items.length > 0 && <Steps items={section.items} />}
       {section.kind === 'cards' && section.items.length > 0 && <Cards items={section.items} />}

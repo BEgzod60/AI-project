@@ -46,6 +46,33 @@ python manage.py runserver 8001
 
 Backend: http://127.0.0.1:8001 (Vite `/api` so‘rovlarini shu portga yo‘naltiradi)
 
+### PostgreSQL (production)
+
+`DATABASE_URL` berilsa PostgreSQL ishlatiladi, berilmasa — lokal `db.sqlite3`.
+
+```bash
+export DATABASE_URL=postgres://user:parol@host:5432/iymon
+python manage.py migrate
+python manage.py sync_prayer_times --year 2026   # namoz vaqtlarini bazaga yuklash
+```
+
+Mavjud SQLite ma'lumotlarini (darslar, namoz bo'limlari, namoz vaqtlari) ko'chirish:
+
+```bash
+# 1) SQLite'dan eksport (DATABASE_URL o'rnatilmagan holda)
+python manage.py dumpdata --natural-foreign --natural-primary \
+  -e contenttypes -e auth.Permission -e sessions -e admin.LogEntry -o data.json
+# 2) PostgreSQL'ga import
+DATABASE_URL=postgres://... python manage.py migrate
+DATABASE_URL=postgres://... python manage.py loaddata data.json
+```
+
+Namoz vaqtlari kuniga 1 marta yangilanishi uchun cron:
+
+```
+0 3 * * * cd /path/to/backend && DATABASE_URL=postgres://... venv/bin/python manage.py sync_prayer_times
+```
+
 ### Frontend
 
 ```bash

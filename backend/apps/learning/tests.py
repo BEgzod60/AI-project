@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import re
 from unittest import mock
 
@@ -258,3 +259,29 @@ class AudioReferenceTests(TestCase):
         r = self.client.get('/api/namoz-organish/bomdod/lesson/').json()['recitations']['tashahhud']
         self.assertIsNone(r['audio'])
         self.assertEqual(r['audio_reference'], {'url': post, 'title': 'Rasmiy maqola'})
+
+
+class StepImageFilesTests(TestCase):
+    """Qadam rasmlari frontend/public ichida bo'lishi shart — aks holda deploy'da sahifada bo'sh joy chiqadi."""
+
+    PUBLIC = Path(__file__).resolve().parents[3] / 'frontend' / 'public'
+
+    def test_all_step_image_files_exist(self):
+        from .step_images import FEMALE, IMAGES, _image
+
+        missing = []
+        for key in IMAGES:
+            image = _image(key)
+            for src in (image['src'], image.get('src_female')):
+                if src and not (self.PUBLIC / src.lstrip('/')).is_file():
+                    missing.append(src)
+        self.assertEqual(missing, [], f"Rasm fayllari topilmadi: {missing}")
+        self.assertTrue(FEMALE <= set(IMAGES))
+
+    def test_six_prayers_and_hayit_have_images(self):
+        from .step_images import images_for
+
+        self.assertEqual([i['caption'] for i in images_for('Salom', 'bomdod')], ['O‘ng tomonga salom', 'Chap tomonga salom'])
+        self.assertTrue(images_for('Uch zoid takbir', 'hayit'))
+        self.assertEqual(images_for('Xutba', 'hayit'), [])
+        self.assertEqual(images_for('Rakatlari', 'tahajjud'), [])
