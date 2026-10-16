@@ -31,6 +31,17 @@ export const userIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
+/** Belgilanayotgan (hali tasdiqlanmagan) joy — oltin rangli nishon */
+export const pendingIcon = L.divIcon({
+  className: '',
+  html: `<span class="relative flex h-10 w-10 items-end justify-center">
+    <span class="absolute bottom-0 h-3 w-3 rounded-full bg-black/25 blur-[2px]"></span>
+    <svg viewBox="0 0 24 24" class="relative h-10 w-10 drop-shadow-lg"><path fill="#e0a02e" stroke="#062818" stroke-width="1.2" d="M12 22s-7-6.1-7-12a7 7 0 1 1 14 0c0 5.9-7 12-7 12Z"/><circle cx="12" cy="10" r="2.8" fill="#062818"/></svg>
+  </span>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 38],
+});
+
 export const kaabaIcon = L.divIcon({
   className: '',
   html: `<span class="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#f7e3a3] to-[#a87818] p-[3px] shadow-lg ring-2 ring-white">

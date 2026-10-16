@@ -80,7 +80,13 @@ Yaqin masjidlar (Qibla sahifasi) bazadan beriladi — OpenStreetMap'dan bir mart
 ```bash
 python manage.py sync_mosques                 # O'zbekiston bo'yicha
 python manage.py sync_mosques --only-missing  # uzilib qolgan bo'lsa — qolgan kataklar
+python manage.py import_masjid_uz             # Toshkent: imom-xatib, manzil, telefon (masjid.uz katalogi)
+python manage.py count_masjid_uz              # viloyatlar bo'yicha masjidlar soni (masjid.uz katalogi)
 ```
+
+Masjid ma'lumotlari faqat manbasi bilan ko'rsatiladi: imom-xatib, manzil, telefon — masjid.uz (Islom.uz);
+qurilgan yili va Vikipediya — Wikidata / OSM; O'zbekiston bo'yicha jami soni — Din ishlari bo'yicha qo'mita.
+Imom-xatiblar almashib turadi, shuning uchun `import_masjid_uz` ni vaqti-vaqti bilan qayta ishga tushiring.
 
 Namoz vaqtlari kuniga 1 marta yangilanishi uchun cron:
 

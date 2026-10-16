@@ -11,6 +11,7 @@
   Yuklanmagan hududda jonli so'rov yuboriladi va natija bazaga yoziladi.
 """
 import math
+import re
 import time
 from urllib.parse import quote, unquote
 
@@ -18,7 +19,7 @@ import requests
 from django.core.cache import cache
 from django.db import transaction
 
-from .models import Mosque, MosqueArea
+from .models import DirectoryEntry, Mosque, MosqueArea, MosqueCount
 
 # Asosiy server va zaxiralar (biri band yoki ishlamasa — keyingisi)
 OVERPASS_URLS = [
@@ -187,8 +188,26 @@ def _image(tags):
     return ''
 
 
-def resolve_wikidata_images(ids):
-    """Wikidata ID -> rasm (P18) kichik nusxasi. Xato bo'lsa — bo'sh (rasm shart emas)."""
+def _wikidata_year(claims):
+    """P571 (qurilgan/asos solingan) -> "1997" yoki "XIX asr" (aniqlikka qarab)."""
+    for claim in claims.get('P571', []):
+        value = claim.get('mainsnak', {}).get('datavalue', {}).get('value', {})
+        time_ = value.get('time', '') if isinstance(value, dict) else ''
+        precision = value.get('precision', 9) if isinstance(value, dict) else 9
+        if len(time_) < 5:
+            continue
+        year = int(time_[1:].split('-')[0]) * (-1 if time_.startswith('-') else 1)
+        if precision >= 9:
+            return str(year)
+        if precision == 8:
+            return f'{year // 10 * 10}-yillar'
+        if precision == 7:
+            return f'{(year - 1) // 100 + 1}-asr'
+    return ''
+
+
+def resolve_wikidata(ids):
+    """Wikidata ID -> {'image', 'built', 'wikipedia'} (bo'lganlari). Xato bo'lsa — bo'sh (shart emas)."""
     result = {}
     ids = [i for i in dict.fromkeys(ids) if i and i.startswith('Q')]
     for start in range(0, len(ids), 50):
@@ -196,19 +215,93 @@ def resolve_wikidata_images(ids):
         try:
             response = requests.get(
                 WIKIDATA_API,
-                params={'action': 'wbgetentities', 'ids': '|'.join(chunk), 'props': 'claims', 'format': 'json'},
+                params={'action': 'wbgetentities', 'ids': '|'.join(chunk), 'props': 'claims|sitelinks/urls', 'format': 'json'},
                 timeout=20, headers={'User-Agent': USER_AGENT},
             )
             entities = response.json().get('entities', {}) if response.status_code == 200 else {}
         except (requests.exceptions.RequestException, ValueError):
             continue
         for qid, entity in entities.items():
-            for claim in entity.get('claims', {}).get('P18', []):
+            claims = entity.get('claims', {})
+            info = {}
+            for claim in claims.get('P18', []):
                 filename = claim.get('mainsnak', {}).get('datavalue', {}).get('value')
                 if isinstance(filename, str):
-                    result[qid] = commons_thumb(filename)
+                    info['image'] = commons_thumb(filename)
                     break
+            if built := _wikidata_year(claims):
+                info['built'] = built
+            links = entity.get('sitelinks', {})
+            for site in ('uzwiki', 'ruwiki', 'enwiki'):
+                if links.get(site, {}).get('url'):
+                    info['wikipedia'] = links[site]['url']
+                    break
+            result[qid] = info
     return result
+
+
+def built_label(value):
+    """OSM start_date -> o'qishli: "2019-05-10" -> "2019", "after 1500" -> "1500-yildan keyin", "C18" -> "18-asr"."""
+    v = (value or '').strip()
+    if not v:
+        return ''
+    low = v.lower()
+    m = re.fullmatch(r'(after|before|~|ca\.?|circa)?\s*(\d{3,4})(-\d{2}){0,2}', low)
+    if m:
+        year = m.group(2)
+        return {'after': f'{year}-yildan keyin', 'before': f'{year}-yilgacha'}.get(m.group(1) or '', year if not m.group(1) else f'taxminan {year}')
+    m = re.fullmatch(r'c(\d{1,2})', low)
+    if m:
+        return f'{m.group(1)}-asr'
+    m = re.fullmatch(r'(\d{3,4})\s*[-–]\s*(\d{3,4})', low)
+    if m:
+        return f'{m.group(1)}–{m.group(2)}'
+    return v[:60]
+
+
+_DAYS = {'Mo': 'Du', 'Tu': 'Se', 'We': 'Ch', 'Th': 'Pa', 'Fr': 'Ju', 'Sa': 'Sh', 'Su': 'Ya'}
+
+
+def hours_label(value):
+    """OSM opening_hours -> o'zbekcha: "Mo-Su 05:00-22:00" -> "Du–Ya 05:00–22:00", "24/7" -> "Kecha-kunduz"."""
+    v = (value or '').strip()
+    if not v:
+        return ''
+    if v == '24/7':
+        return 'Kecha-kunduz (24/7)'
+    v = re.sub(r'\bsunrise\s*-\s*sunset\b', 'quyosh chiqishidan botishigacha', v, flags=re.I)
+    v = re.sub(r'\bdawn\s*-\s*dusk\b', 'tongdan kechgacha', v, flags=re.I)
+    v = re.sub(r'\bsunrise\b', 'quyosh chiqishi', v, flags=re.I)
+    v = re.sub(r'\bsunset\b', 'quyosh botishi', v, flags=re.I)
+    v = re.sub(r'\b(Mo|Tu|We|Th|Fr|Sa|Su)\b', lambda m: _DAYS[m.group(1)], v)
+    v = re.sub(r'\bPH\b', 'bayram kunlari', v)
+    v = re.sub(r'\b(off|closed)\b', 'yopiq', v, flags=re.I)
+    v = re.sub(r'(?<=[A-Za-z0-9])-(?=[A-Za-z0-9])', '–', v)
+    v = re.sub(r'\s*;\s*', '; ', v)
+    return (v[0].upper() + v[1:])[:255]
+
+
+def _phone(tags):
+    for key in ('phone', 'contact:phone', 'contact:mobile', 'mobile'):
+        if tags.get(key):
+            return tags[key].split(';')[0].strip()[:80]
+    return ''
+
+
+def _osm_wikipedia(tags):
+    """OSM "wikipedia" tegi: "uz:Minor masjidi" -> maqola havolasi."""
+    value = tags.get('wikipedia', '')
+    if ':' not in value:
+        return ''
+    lang, title = value.split(':', 1)
+    if not lang.isalpha() or len(lang) > 3 or not title:
+        return ''
+    return f'https://{lang}.wikipedia.org/wiki/{quote(title.strip().replace(" ", "_"))}'
+
+
+def _website(tags):
+    url = (tags.get('website') or tags.get('contact:website') or '').strip()
+    return url[:500] if url.startswith('https://') or url.startswith('http://') else ''
 
 
 def _address(tags):
@@ -219,6 +312,21 @@ def _address(tags):
     return ', '.join(p.strip() for p in parts if p)
 
 
+# OSM'da "musulmon ibodat joyi" deb belgilangan, lekin masjid bo'lmaganlar (maqbara, tahoratxona, mozor)
+NON_MOSQUE_NAME = re.compile(
+    r'mausoleum|maqbara|мавзолей|мақбара|tahoratxona|tahorat ?xona|ablution|wudu|mozor|mazar|мазар|'
+    r'qabriston|cemetery|кладбище|tomb',
+    re.I,
+)
+NON_MOSQUE_HISTORIC = {'tomb', 'mausoleum', 'memorial', 'monument', 'wayside_shrine'}
+
+
+def is_mosque(tags):
+    if tags.get('historic') in NON_MOSQUE_HISTORIC or tags.get('building') in ('mausoleum', 'tomb') or tags.get('tomb'):
+        return False
+    return not NON_MOSQUE_NAME.search(_name(tags))
+
+
 def _parse(data):
     """Overpass javobi -> masjidlar ro'yxati (masofasiz; nuqta = node yoki bino markazi)."""
     mosques = {}
@@ -227,6 +335,8 @@ def _parse(data):
         if not point or 'lat' not in point or 'lon' not in point:
             continue
         tags = el.get('tags', {})
+        if not is_mosque(tags):
+            continue
         key = f"{el['type']}/{el['id']}"
         mosques[key] = {
             'id': key,
@@ -235,18 +345,25 @@ def _parse(data):
             'lat': point['lat'],
             'lon': point['lon'],
             'image': _image(tags),
+            'built': built_label(tags.get('start_date')),
+            'wikipedia': _osm_wikipedia(tags),
+            'website': _website(tags),
+            'phone': _phone(tags),
+            'opening_hours': (tags.get('opening_hours') or '').strip()[:255],
             'wikidata': tags.get('wikidata', ''),
         }
     return list(mosques.values())
 
 
-def _add_wikidata_images(items):
-    missing = [m['wikidata'] for m in items if not m['image'] and m.get('wikidata')]
-    if missing:
-        images = resolve_wikidata_images(missing)
+def _add_wikidata_info(items):
+    """Wikidata'dan rasm, qurilgan yili va Vikipediya — faqat OSM'da bo'lmagan maydonlar to'ldiriladi."""
+    ids = [m['wikidata'] for m in items if m.get('wikidata')]
+    if ids:
+        found = resolve_wikidata(ids)
         for m in items:
-            if not m['image'] and m.get('wikidata') in images:
-                m['image'] = images[m['wikidata']]
+            for key, value in found.get(m.get('wikidata'), {}).items():
+                if not m.get(key):
+                    m[key] = value
     return items
 
 
@@ -288,7 +405,11 @@ def is_covered(south, west, north, east):
 def _from_db(south, west, north, east):
     rows = Mosque.objects.filter(lat__gte=south, lat__lte=north, lon__gte=west, lon__lte=east)
     return [
-        {'id': m.osm_id, 'name': m.name, 'address': m.address, 'lat': m.lat, 'lon': m.lon, 'image': m.image}
+        {
+            'id': m.osm_id, 'name': m.name, 'address': m.address, 'lat': m.lat, 'lon': m.lon, 'image': m.image,
+            'built': built_label(m.built), 'wikipedia': m.wikipedia, 'website': m.website,
+            'phone': m.phone, 'opening_hours': m.opening_hours,
+        }
         for m in rows
     ]
 
@@ -300,25 +421,46 @@ def save_mosques(items):
     Mosque.objects.bulk_create(
         [
             Mosque(osm_id=m['id'], name=m['name'][:255], address=m['address'][:255], lat=m['lat'], lon=m['lon'],
-                   image=m.get('image', '')[:500])
+                   image=m.get('image', '')[:500], built=m.get('built', '')[:60],
+                   wikipedia=m.get('wikipedia', '')[:500], website=m.get('website', '')[:500],
+                   phone=m.get('phone', '')[:80], opening_hours=m.get('opening_hours', '')[:255])
             for m in items
         ],
         update_conflicts=True,
         unique_fields=['osm_id'],
-        update_fields=['name', 'address', 'lat', 'lon', 'image', 'updated_at'],
+        update_fields=['name', 'address', 'lat', 'lon', 'image', 'built', 'wikipedia', 'website', 'phone',
+                       'opening_hours', 'updated_at'],
     )
     return len(items)
 
 
-PUBLIC_FIELDS = ('id', 'name', 'address', 'lat', 'lon', 'image')
+PUBLIC_FIELDS = ('id', 'name', 'address', 'lat', 'lon', 'image', 'built', 'wikipedia', 'website', 'phone', 'opening_hours')
+
+
+def _attach_directory(result):
+    """Katalog (masjid.uz) ma'lumotlari: imom-xatib, rasmiy manzil, telefon — manba havolasi bilan."""
+    entries = DirectoryEntry.objects.filter(mosque__osm_id__in=[m['id'] for m in result]).select_related('mosque')
+    by_id = {e.mosque.osm_id: e for e in entries}
+    for m in result:
+        e = by_id.get(m['id'])
+        m['directory'] = (
+            {'imam': e.imam, 'address': e.address, 'phone': e.phone, 'district': e.district,
+             'source_url': e.source_url, 'source': 'masjid.uz (Islom.uz)'}
+            if e else None
+        )
+    return result
 
 
 def _with_distance(items, lat, lon, radius):
     result = []
     for m in items:
+        if NON_MOSQUE_NAME.search(m.get('name') or ''):  # bazadagi eski yozuvlar uchun ham
+            continue
         dist = distance_m(lat, lon, m['lat'], m['lon'])
         if dist <= radius:
-            result.append({**{k: m.get(k, '') for k in PUBLIC_FIELDS}, 'distance_m': round(dist)})
+            item = {k: m.get(k, '') for k in PUBLIC_FIELDS}
+            item['opening_hours'] = hours_label(item['opening_hours'])
+            result.append({**item, 'distance_m': round(dist)})
     return sorted(result, key=lambda m: m['distance_m'])
 
 
@@ -326,7 +468,7 @@ def nearby_mosques(lat, lon, radius):
     """lat/lon — allaqachon yaxlitlangan; radius — RADII dan biri (metr). Masofa bo'yicha saralangan."""
     box = bbox_around(lat, lon, radius)
     if is_covered(*box):
-        return _with_distance(_from_db(*box), lat, lon, radius)
+        return _attach_directory(_with_distance(_from_db(*box), lat, lon, radius))
 
     try:
         found = _cell_mosques(_snap(lat), _snap(lon), radius)
@@ -334,9 +476,9 @@ def nearby_mosques(lat, lon, radius):
         # Overpass ishlamayapti — bazada (avvalgi so'rovlardan) bor ma'lumot bo'lsa, shuni beramiz
         stored = _from_db(*box)
         if stored:
-            return _with_distance(stored, lat, lon, radius)
+            return _attach_directory(_with_distance(stored, lat, lon, radius))
         raise
-    return _with_distance(found, lat, lon, radius)
+    return _attach_directory(_with_distance(found, lat, lon, radius))
 
 
 def sync_tile(south, west):
@@ -347,7 +489,7 @@ def sync_tile(south, west):
     north, east = south + TILE_DEG, west + TILE_DEG
     data = _fetch(_bbox_query(south, west, north, east), budget=SYNC_REQUEST_TIMEOUT * 2, request_timeout=SYNC_REQUEST_TIMEOUT)
     items = [m for m in _parse(data) if south <= m['lat'] < north and west <= m['lon'] < east]
-    _add_wikidata_images(items)
+    _add_wikidata_info(items)
     with transaction.atomic():
         save_mosques(items)
         Mosque.objects.filter(lat__gte=south, lat__lt=north, lon__gte=west, lon__lt=east).exclude(
@@ -381,4 +523,43 @@ def _cell_mosques(lat, lon, radius):
     result = _parse(data)
     save_mosques(result)  # keyingi safar Overpass ishlamasa ham bazada qoladi
     cache.set(key, result, CACHE_TTL)
+    return result
+
+
+# Toshkent shahri chegarasi — shahar ichida viloyat emas, shahar soni ko'rsatiladi
+TASHKENT_CITY_BBOX = (41.15, 69.05, 41.48, 69.55)
+
+
+def region_scope(lat, lon):
+    """Nuqta qaysi hududga tegishli (taxminan: eng yaqin viloyat markazi). O'zbekistondan tashqarida — None."""
+    from .directory import EXTRA_CENTERS, REGIONS
+
+    s, w, n, e = TASHKENT_CITY_BBOX
+    if s <= lat <= n and w <= lon <= e:
+        return 'toshkent-sh'
+    s, w, n, e = UZBEKISTAN_BBOX
+    if not (s <= lat <= n and w <= lon <= e):
+        return None
+    centers = {scope: c for scope, _label, c in REGIONS.values() if scope != 'toshkent-sh'}
+    centers.update(EXTRA_CENTERS)
+    return min(centers, key=lambda k: distance_m(lat, lon, *centers[k]))
+
+
+def area_counts(lat, lon):
+    """Nuqta joylashgan hudud va O'zbekiston bo'yicha masjidlar soni — faqat manbasi bilan."""
+    scopes = [x for x in (region_scope(lat, lon), 'uzbekistan') if x]
+    rows = {c.scope: c for c in MosqueCount.objects.filter(scope__in=scopes)}
+    result = []
+    for scope in scopes:
+        c = rows.get(scope)
+        if not c:
+            continue
+        item = {
+            'scope': c.scope, 'label': c.label, 'count': c.count,
+            'source_title': c.source_title, 'source_url': c.source_url, 'as_of': c.as_of.isoformat(),
+        }
+        if scope == 'toshkent-sh':
+            so, w, n, e = TASHKENT_CITY_BBOX
+            item['on_map'] = Mosque.objects.filter(lat__gte=so, lat__lte=n, lon__gte=w, lon__lte=e).count()
+        result.append(item)
     return result

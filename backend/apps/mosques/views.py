@@ -37,6 +37,7 @@ def nearby_mosques(request):
         'radius': radius,
         'count': len(mosques),
         'mosques': mosques,
+        'counts': services.area_counts(lat, lon),
         'source': 'OpenStreetMap',
         'attribution': '© OpenStreetMap hissadorlari',
     })

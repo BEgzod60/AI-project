@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Mosque } from '../../types/qibla';
 import { formatDistance, type LatLon } from './geo';
-import { L, createMap, mosqueIcon, userIcon } from './leaflet';
+import { L, createMap, mosqueIcon, pendingIcon, userIcon } from './leaflet';
 import { directionsUrl, mosqueTitle } from './mosqueUtils';
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
   onSelect: (id: string) => void;
   /** Joyni belgilash rejimi: xaritani bosish yoki belgini sudrash */
   picking: boolean;
+  /** Belgilangan, lekin hali «Tanlandi» bosilmagan nuqta */
+  pending: LatLon | null;
   onPick: (point: LatLon) => void;
 }
 
@@ -20,10 +22,13 @@ function escapeHtml(s: string): string {
 }
 
 /** Yaqin masjidlar xaritasi: qidiruv radiusi, foydalanuvchi va masjid belgilari */
-export default function MosqueMap({ center, radius, mosques, activeId, onSelect, picking, onPick }: Props) {
+export default function MosqueMap({ center, radius, mosques, activeId, onSelect, picking, pending, onPick }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const pendingRef = useRef<L.Marker | null>(null);
+  /** Oxirgi ko'rinish chegarasi — yashirin xarita ko'ringanda qayta moslash uchun */
+  const boundsRef = useRef<L.LatLngBounds | null>(null);
   const markers = useRef(new Map<string, L.Marker>());
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -40,8 +45,19 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (pickingRef.current) onPickRef.current({ lat: e.latlng.lat, lon: e.latlng.lng });
     });
+    // Belgilash rejimida masjid oynachalari ochilmaydi
+    map.on('popupopen', () => {
+      if (pickingRef.current) map.closePopup();
+    });
     // Ro'yxat/xarita almashganda o'lcham o'zgaradi — plitkalar to'g'ri chizilsin
-    const ro = new ResizeObserver(() => map.invalidateSize());
+    let wasHidden = elRef.current.offsetWidth === 0;
+    const ro = new ResizeObserver(([entry]) => {
+      const hidden = entry.contentRect.width === 0;
+      map.invalidateSize();
+      // Yashirin (telefonda «Ro'yxat») yaratilgan xarita birinchi ko'ringanda — qidiruv doirasiga moslanadi
+      if (wasHidden && !hidden && boundsRef.current) map.fitBounds(boundsRef.current, { padding: [16, 16] });
+      wasHidden = hidden;
+    });
     ro.observe(elRef.current);
     return () => {
       ro.disconnect();
@@ -65,13 +81,8 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
       fillOpacity: 0.06,
       interactive: false,
     }).addTo(layer);
-    // Ko'k belgi — sudrab aniq joyni ko'rsatish mumkin
-    L.marker([center.lat, center.lon], { icon: userIcon, title: 'Mening joylashuvim (sudrash mumkin)', keyboard: false, draggable: true })
-      .on('dragend', (e) => {
-        const p = (e.target as L.Marker).getLatLng();
-        onPickRef.current({ lat: p.lat, lon: p.lng });
-      })
-      .addTo(layer);
+    // Ko'k belgi — hozirgi joy (qimirlamaydi). Yangi joy oltin belgi bilan tanlanadi va «Tanlandi» bilan tasdiqlanadi
+    L.marker([center.lat, center.lon], { icon: userIcon, title: 'Hozirgi joy', keyboard: false, interactive: false }).addTo(layer);
 
     for (const m of mosques) {
       const title = mosqueTitle(m);
@@ -85,12 +96,17 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
             `<span class="mt-1 block text-xs font-semibold">${formatDistance(m.distance_m)}</span>` +
             `<a class="mt-1.5 inline-block font-semibold text-primary-700" href="${directionsUrl(m)}" target="_blank" rel="noopener noreferrer">Yo‘nalish olish ↗</a>`,
         )
-        .on('click', () => onSelectRef.current(m.id))
+        .on('click', (e: L.LeafletMouseEvent) => {
+          // Belgilash rejimida masjid belgisiga bosish ham joy belgilaydi
+          if (pickingRef.current) onPickRef.current({ lat: e.latlng.lat, lon: e.latlng.lng });
+          else onSelectRef.current(m.id);
+        })
         .addTo(layer);
       markers.current.set(m.id, marker);
     }
 
-    map.fitBounds(L.latLng(center.lat, center.lon).toBounds(radius * 2), { padding: [16, 16] });
+    boundsRef.current = L.latLng(center.lat, center.lon).toBounds(radius * 2);
+    if (elRef.current?.offsetWidth) map.fitBounds(boundsRef.current, { padding: [16, 16] });
   }, [center, radius, mosques]);
 
   // Ro'yxatda tanlangan masjid xaritada ajratib ko'rsatiladi
@@ -102,6 +118,27 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
       active.openPopup();
     }
   }, [activeId, mosques]);
+
+  // Belgilanayotgan nuqta: oltin nishon, sudrab aniqlashtirish mumkin
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!picking || !pending) {
+      pendingRef.current?.remove();
+      pendingRef.current = null;
+      return;
+    }
+    if (!pendingRef.current) {
+      pendingRef.current = L.marker([pending.lat, pending.lon], { icon: pendingIcon, draggable: true, zIndexOffset: 1000, title: 'Belgilangan joy' })
+        .on('dragend', (e) => {
+          const p = (e.target as L.Marker).getLatLng();
+          onPickRef.current({ lat: p.lat, lon: p.lng });
+        })
+        .addTo(map);
+    } else {
+      pendingRef.current.setLatLng([pending.lat, pending.lon]);
+    }
+  }, [picking, pending]);
 
   // Belgilash rejimida kursor — nishon
   useEffect(() => {

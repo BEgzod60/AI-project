@@ -3,6 +3,7 @@ import { useApi } from '../../hooks/useApi';
 import { getNearbyMosques } from '../../services/qiblaService';
 import { Loading } from '../common/Loading';
 import { formatDistance, type LatLon } from './geo';
+import type { Mosque, MosqueCount } from '../../types/qibla';
 import { directionsUrl, mosqueTitle } from './mosqueUtils';
 
 const MosqueMap = lazy(() => import('./MosqueMap'));
@@ -74,6 +75,142 @@ function MosqueThumb({ src, alt }: { src: string; alt: string }) {
   );
 }
 
+const nf = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+
+function dateUz(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+/** Hudud bo'yicha masjidlar soni — faqat manbasi ko'rsatilgan ma'lumot */
+function CountsBar({ counts }: { counts: MosqueCount[] }) {
+  if (!counts.length) return null;
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {counts.map((c) => (
+        <div key={c.scope} className="flex items-start gap-3 rounded-2xl bg-primary-50/70 p-3 ring-1 ring-primary-500/15 dark:bg-primary-900/30 dark:ring-white/10">
+          <span className="font-display text-2xl font-extrabold tabular-nums text-primary-800 dark:text-emerald-200">{nf(c.count)}</span>
+          <div className="min-w-0 text-xs leading-snug text-neutral-600 dark:text-neutral-300">
+            <p className="font-semibold text-neutral-800 dark:text-neutral-100">{c.label}dagi masjidlar</p>
+            <p>
+              Manba:{' '}
+              <a href={c.source_url} target="_blank" rel="noopener noreferrer" className="underline decoration-neutral-300 underline-offset-2 hover:text-primary-700">
+                {c.source_title}
+              </a>{' '}
+              · {dateUz(c.as_of)}
+            </p>
+            {c.on_map !== undefined && (
+              <p className="mt-0.5 text-neutral-500">
+                Xaritada (OpenStreetMap) {nf(c.on_map)} ta belgilangan — unga kichik namozxonalar ham kiradi.
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Masjid haqida qo'shimcha ma'lumot (bo'lganlari): imom-xatib, qurilgan yili, telefon, manbalar */
+function telHref(phone: string): string {
+  return `tel:${phone.split(/[,;]/)[0].replace(/[^\d+]/g, '')}`;
+}
+
+function MosqueDetails({ m }: { m: Mosque }) {
+  const [open, setOpen] = useState(false);
+  const d = m.directory;
+  // Telefon: katalog (masjid.uz) yoki OSM — qaysi biri bo'lsa
+  const phone = d?.phone || m.phone;
+  const hasMore = !!(d || m.wikipedia || m.website);
+  if (!d?.imam && !m.built && !phone && !m.opening_hours && !hasMore) return null;
+
+  return (
+    <div className="mt-1.5 text-xs text-neutral-600 dark:text-neutral-300">
+      {(phone || m.opening_hours) && (
+        <div className="mb-1 flex flex-wrap gap-x-3 gap-y-1">
+          {phone && (
+            <a
+              href={telHref(phone)}
+              className="inline-flex min-h-[1.75rem] items-center gap-1 rounded-full bg-primary-50 px-2.5 font-semibold text-primary-800 ring-1 ring-primary-500/20 transition hover:bg-primary-100 dark:bg-primary-900/40 dark:text-emerald-200 dark:ring-white/10"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />
+              </svg>
+              <span className="sr-only">Telefon: </span>
+              {phone.split(/[,;]/)[0].trim()}
+            </a>
+          )}
+          {m.opening_hours && (
+            <span className="inline-flex min-h-[1.75rem] items-center gap-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5 text-neutral-400" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path strokeLinecap="round" d="M12 7v5l3 2" />
+              </svg>
+              <span className="text-neutral-400">Ish vaqti:</span> <span className="font-semibold text-neutral-800 dark:text-neutral-100">{m.opening_hours}</span>
+            </span>
+          )}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {d?.imam && (
+          <span>
+            <span className="text-neutral-400">Imom-xatib:</span> <span className="font-semibold text-neutral-800 dark:text-neutral-100">{d.imam}</span>
+          </span>
+        )}
+        {m.built && (
+          <span>
+            <span className="text-neutral-400">Qurilgan:</span> <span className="font-semibold text-neutral-800 dark:text-neutral-100">{m.built}</span>
+          </span>
+        )}
+      </div>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="mt-1 inline-flex min-h-[2rem] items-center gap-1 font-semibold text-primary-700 hover:underline dark:text-emerald-300"
+        >
+          {open ? 'Yopish' : 'Batafsil'}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      )}
+      {open && (
+        <dl className="mt-1 space-y-1 rounded-xl bg-neutral-50 p-2.5 motion-safe:animate-fade-in dark:bg-white/5">
+          {d?.address && (
+            <div>
+              <dt className="inline text-neutral-400">Manzil: </dt>
+              <dd className="inline">{d.address}{d.district ? `, ${d.district}` : ''}</dd>
+            </div>
+          )}
+          {d?.phone && (
+            <div>
+              <dt className="inline text-neutral-400">Telefon: </dt>
+              <dd className="inline">
+                <a href={telHref(d.phone)} className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">{d.phone}</a>
+              </dd>
+            </div>
+          )}
+          {(m.wikipedia || m.website) && (
+            <div className="flex flex-wrap gap-3">
+              {m.wikipedia && <a href={m.wikipedia} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">Vikipediya ↗</a>}
+              {m.website && <a href={m.website} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-700 hover:underline dark:text-emerald-300">Veb-sayt ↗</a>}
+            </div>
+          )}
+          {d && (
+            <p className="text-[11px] text-neutral-400">
+              Manba:{' '}
+              <a href={d.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-primary-700">{d.source}</a>
+              . Imom-xatiblar almashib turadi — ma'lumot eskirgan bo‘lishi mumkin.
+            </p>
+          )}
+        </dl>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   location: LatLon;
   /** Xaritada belgilangan joy (aniq joylashuv) */
@@ -85,6 +222,27 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
   const [view, setView] = useState<View>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [pending, setPending] = useState<LatLon | null>(null);
+
+  // Ro'yxat ko'rinadimi (telefonda ro'yxat yoki xarita; belgilash rejimida — faqat xarita)
+  const showList = view === 'list' && !picking;
+
+  const startPicking = () => {
+    setPicking(true);
+    setPending(null);
+    setView('map');
+  };
+  const cancelPicking = () => {
+    setPicking(false);
+    setPending(null);
+  };
+  const confirmPicking = () => {
+    if (!pending) return;
+    setPicking(false);
+    setActiveId(null);
+    setPending(null);
+    onPickLocation(pending);
+  };
   const { data, loading, error, retry } = useApi(
     () => getNearbyMosques(location.lat, location.lon, radiusKm * 1000),
     [location.lat, location.lon, radiusKm],
@@ -113,7 +271,10 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
               </button>
               <div className="flex min-w-0 flex-1 flex-col">
                 <h3 className="font-display text-base font-bold leading-snug text-neutral-900 dark:text-white">{mosqueTitle(m)}</h3>
-                <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{m.address || 'Manzil xaritada ko‘rsatilmagan'}</p>
+                <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                  {m.address || m.directory?.address || 'Manzil xaritada ko‘rsatilmagan'}
+                </p>
+                <MosqueDetails m={m} />
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
                   <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary-700 dark:text-emerald-300">
                     <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
@@ -149,17 +310,40 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
           activeId={activeId}
           onSelect={setActiveId}
           picking={picking}
+          pending={pending}
           onPick={(p) => {
-            setPicking(false);
-            setActiveId(null);
-            onPickLocation(p);
+            // Bosilgan/sudralgan nuqta darhol qabul qilinmaydi — «Tanlandi» bilan tasdiqlanadi
+            setPicking(true);
+            setPending(p);
           }}
         />
       </Suspense>
       {picking && (
-        <p className="pointer-events-none absolute inset-x-3 top-3 z-[500] rounded-xl bg-primary-900/90 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg">
-          Turgan joyingizni xaritada bosing yoki ko‘k belgini sudrang
-        </p>
+        <>
+          <p className="pointer-events-none absolute left-14 right-3 top-3 z-[500] rounded-xl bg-primary-900/90 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg">
+            {pending ? 'Oltin belgini sudrab aniqlashtiring, so‘ng «Tanlandi» tugmasini bosing' : 'Turgan joyingizni xaritada bosing'}
+          </p>
+          <div className="absolute inset-x-3 bottom-8 z-[500] flex gap-2 sm:left-auto sm:w-80">
+            <button
+              type="button"
+              onClick={cancelPicking}
+              className="min-h-[3rem] flex-1 rounded-2xl bg-white/95 px-4 text-sm font-semibold text-neutral-700 shadow-lg ring-1 ring-black/10 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:bg-neutral-800/95 dark:text-neutral-100 dark:ring-white/15"
+            >
+              Bekor qilish
+            </button>
+            <button
+              type="button"
+              onClick={confirmPicking}
+              disabled={!pending}
+              className="inline-flex min-h-[3rem] flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-primary-700 px-4 text-sm font-bold text-white shadow-lg transition hover:bg-primary-800 disabled:cursor-not-allowed disabled:bg-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m5 12.5 4.5 4.5L19 7.5" />
+              </svg>
+              Tanlandi
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -202,10 +386,7 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
-            onClick={() => {
-              setPicking((v) => !v);
-              setView('map');
-            }}
+            onClick={() => (picking ? cancelPicking() : startPicking())}
             aria-pressed={picking}
             className={`inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold ring-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
               picking
@@ -244,24 +425,20 @@ export function NearbyMosques({ location, onPickLocation }: Props) {
         </div>
       </div>
 
+      {!error && data && <CountsBar counts={data.counts ?? []} />}
+
       <div className="mt-5">
         {ready && mosques.length > 0 && (
           <p className="mb-3 text-sm text-neutral-500 dark:text-neutral-400" aria-live="polite">
             {radiusKm} km radiusda {mosques.length} ta masjid topildi
           </p>
         )}
-        {/* Xarita har doim mavjud (joyni belgilash uchun ham); telefonda — Ro'yxat/Xarita almashadi */}
-        {view === 'list' && !picking ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-            <div>{status}</div>
-            <div className="hidden lg:block">{map}</div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {map}
-            {(loading || error) && status}
-          </div>
-        )}
+        {/* Xarita doim bitta joyda turadi (qayta yaratilmaydi — belgilangan nuqta va ko'rinish saqlanadi);
+            Ro'yxat/Xarita va belgilash rejimi faqat CSS orqali almashadi */}
+        <div className={`grid grid-cols-1 gap-4 ${showList ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]' : ''}`}>
+          <div className={showList ? '' : 'order-2'}>{showList ? status : (loading || error) && status}</div>
+          <div className={`order-1 lg:order-none ${showList ? 'hidden lg:block' : ''}`}>{map}</div>
+        </div>
         <p className="mt-4 text-[11px] text-neutral-400">
           Masjidlar ma'lumoti: © OpenStreetMap hissadorlari (Overpass API). Masofa — to‘g‘ri chiziq bo‘yicha.
         </p>

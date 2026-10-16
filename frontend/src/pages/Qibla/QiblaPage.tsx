@@ -244,10 +244,7 @@ export function QiblaPage() {
         <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-900/80 to-primary-900/10 md:via-primary-900/60" />
         <div className="relative px-5 py-8 md:px-10 md:py-12">
           <Breadcrumb items={[{ label: 'Bosh sahifa', to: '/' }, { label: 'Qibla' }]} />
-          <div className="mt-4 flex items-center gap-3 md:gap-4">
-            <img src="/images/qibla/kaaba.webp" alt="" width={72} height={72} className="h-14 w-14 shrink-0 drop-shadow-[0_6px_14px_rgb(0_0_0/0.45)] md:h-[4.5rem] md:w-[4.5rem]" />
-            <h1 className="font-display text-5xl font-extrabold text-accent-400 md:text-6xl">Qibla</h1>
-          </div>
+          <h1 className="mt-4 font-display text-5xl font-extrabold text-accent-400 md:text-6xl">Qibla</h1>
           <p className="mt-2 max-w-sm text-base leading-relaxed text-white/85 md:text-lg">
             Ka’ba tomon yo‘nalishni aniqlang va yaqin masjidlarni toping
           </p>
