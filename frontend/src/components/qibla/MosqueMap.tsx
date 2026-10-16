@@ -15,6 +15,8 @@ interface Props {
   /** Belgilangan, lekin hali «Tanlandi» bosilmagan nuqta */
   pending: LatLon | null;
   onPick: (point: LatLon) => void;
+  /** Joy xaritada tanlangan — yangi markazga yaqin masshtabda o'tiladi (butun doiraga uzoqlashmaydi) */
+  keepView?: boolean;
 }
 
 function escapeHtml(s: string): string {
@@ -22,13 +24,17 @@ function escapeHtml(s: string): string {
 }
 
 /** Yaqin masjidlar xaritasi: qidiruv radiusi, foydalanuvchi va masjid belgilari */
-export default function MosqueMap({ center, radius, mosques, activeId, onSelect, picking, pending, onPick }: Props) {
+export default function MosqueMap({ center, radius, mosques, activeId, onSelect, picking, pending, onPick, keepView }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const pendingRef = useRef<L.Marker | null>(null);
   /** Oxirgi ko'rinish chegarasi — yashirin xarita ko'ringanda qayta moslash uchun */
   const boundsRef = useRef<L.LatLngBounds | null>(null);
+  const lastCenter = useRef<string>('');
+  const lastRadius = useRef<number>(0);
+  const keepViewRef = useRef(keepView);
+  keepViewRef.current = keepView;
   const markers = useRef(new Map<string, L.Marker>());
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -106,7 +112,18 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
     }
 
     boundsRef.current = L.latLng(center.lat, center.lon).toBounds(radius * 2);
-    if (elRef.current?.offsetWidth) map.fitBounds(boundsRef.current, { padding: [16, 16] });
+    const centerKey = `${center.lat},${center.lon}`;
+    const centerChanged = centerKey !== lastCenter.current;
+    const radiusChanged = radius !== lastRadius.current;
+    lastCenter.current = centerKey;
+    lastRadius.current = radius;
+    if (!elRef.current?.offsetWidth) return;
+    if (keepViewRef.current && centerChanged) {
+      // Xaritada tanlangan joy — o'sha nuqtada, yaqin masshtabda qolinadi (butun doiraga uzoqlashmaydi)
+      map.setView([center.lat, center.lon], Math.max(map.getZoom(), 16));
+    } else if (centerChanged || radiusChanged || !keepViewRef.current) {
+      map.fitBounds(boundsRef.current, { padding: [16, 16] });
+    }
   }, [center, radius, mosques]);
 
   // Ro'yxatda tanlangan masjid xaritada ajratib ko'rsatiladi

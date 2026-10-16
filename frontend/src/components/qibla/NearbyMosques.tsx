@@ -305,13 +305,25 @@ export function NearbyMosques({ location, onPickLocation, pickRequest = 0 }: Pro
     setPicking(false);
     setPending(null);
   };
+  const [pickedAt, setPickedAt] = useState<LatLon | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [notice]);
+
   const confirmPicking = () => {
     if (!pending) return;
     setPicking(false);
     setActiveId(null);
     setPending(null);
+    setPickedAt(pending);
+    setNotice('Joy tanlandi — Qibla yo‘nalishi va yaqin masjidlar shu nuqta bo‘yicha yangilandi.');
     onPickLocation(pending);
   };
+  // Joy boshqa yo'l bilan o'zgarsa (GPS, shahar) — xarita yana butun qidiruv doirasini ko'rsatadi
+  const keepView = !!pickedAt && Math.abs(pickedAt.lat - location.lat) < 1e-9 && Math.abs(pickedAt.lon - location.lon) < 1e-9;
   const { data, loading, error, retry } = useApi(
     () => getNearbyMosques(location.lat, location.lon, radiusKm * 1000),
     [location.lat, location.lon, radiusKm],
@@ -380,6 +392,7 @@ export function NearbyMosques({ location, onPickLocation, pickRequest = 0 }: Pro
           onSelect={setActiveId}
           picking={picking}
           pending={pending}
+          keepView={keepView}
           onPick={(p) => {
             // Bosilgan/sudralgan nuqta darhol qabul qilinmaydi — «Tanlandi» bilan tasdiqlanadi
             setPicking(true);
@@ -387,6 +400,11 @@ export function NearbyMosques({ location, onPickLocation, pickRequest = 0 }: Pro
           }}
         />
       </Suspense>
+      {notice && !picking && (
+        <p role="status" className="pointer-events-none absolute left-14 right-3 top-3 z-[500] rounded-xl bg-emerald-700/95 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg motion-safe:animate-fade-in">
+          ✓ {notice}
+        </p>
+      )}
       {picking && (
         <>
           <p className="pointer-events-none absolute left-14 right-3 top-3 z-[500] rounded-xl bg-primary-900/90 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg">
