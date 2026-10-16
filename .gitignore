@@ -34,3 +34,8 @@ Thumbs.db
 # Asl (manba) rasmlar — saytda ishlatilmaydi; tayyor nusxalari frontend/public/images da
 namoz-rasmlari/
 namoz organish/
+
+# Sahifa skrinshotlari va eskizlar (loyiha ildizida) — saytda ishlatilmaydi
+/*.png
+/*.jpg
+/*.jpeg

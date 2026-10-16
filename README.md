@@ -67,6 +67,13 @@ DATABASE_URL=postgres://... python manage.py migrate
 DATABASE_URL=postgres://... python manage.py loaddata data.json
 ```
 
+Deploy oldidan rasmlarni tekshirish — bazadagi barcha rasm manzillari `frontend/public` dagi fayllarga mos kelishi kerak
+(rasmlarning o'zi bazada emas, `frontend/public/images` da va git'da saqlanadi; build ularni `dist/` ga ko'chiradi):
+
+```bash
+python manage.py check_images
+```
+
 Namoz vaqtlari kuniga 1 marta yangilanishi uchun cron:
 
 ```
