@@ -1,3 +1,5 @@
+import io
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -255,3 +257,41 @@ class SearchTests(TestCase):
         results = self._search('qadarga')['results']
         self.assertEqual((results[0]['type'], results[0]['slug']), ('topic', 'qadarga-iymon'))
         self.assertTrue(all(r['category'] == 'namoz' for r in self._search('iymon', category='namoz')['results']))
+
+
+class NamozXatolarTests(TestCase):
+    """«Namozdagi xatolar» — muslim.uz bo'limlaridan, matn o'zgartirilmasdan."""
+
+    def test_split_items_keeps_source_text(self):
+        from apps.namoz.management.commands.build_namoz_xatolar import split_items
+        intro, items = split_items(
+            '<p>Namoz ichida harom bo‘lgan amallar quyidagilar:&nbsp;</p>'
+            '<ol class="steps"><li value="1">Yuzni o‘ng va chap tarafga qaratish.&nbsp;</li><li value="2">Osmonga qarash.</li></ol>'
+        )
+        self.assertEqual(intro, 'Namoz ichida harom bo‘lgan amallar quyidagilar:')
+        self.assertEqual(items, ['Yuzni o‘ng va chap tarafga qaratish.', 'Osmonga qarash.'])
+        intro, items = split_items('<p>Quyidagilar makruh:</p><p>&ndash; eski ish kiyimi bilan namoz o‘qish;</p>')
+        self.assertEqual(items, ['eski ish kiyimi bilan namoz o‘qish;'])
+
+    def test_offline_build_from_imported_sections(self):
+        from django.core.management import call_command
+        source_topic = Topic.objects.create(category='namoz', number=90, slug='manba', title='Namoz', summary='x', icon='mosque', theme='sand')
+        bodies = {
+            'block150': '<ol class="steps"><li value="1">Namozda gapirish.</li><li value="2">Kishiga salom berish.</li></ol>',
+            'block148': '<p>Harom amallar:</p><ol class="steps"><li value="1">Osmonga qarash.</li></ol>',
+            'block151': '<p>Makruh amallar:</p><p>&ndash; eski ish kiyimi bilan namoz o‘qish;</p>',
+            'block155': '<p>Sajdai sahv vojib bo‘ladi.</p>',
+        }
+        for n, (key, body) in enumerate(bodies.items()):
+            Section.objects.create(topic=source_topic, order=n, title=key, content_html=body, source_key=f'muslim.uz:{key}', status='published')
+        call_command('build_namoz_xatolar', '--offline', stdout=io.StringIO())
+        topic = Topic.objects.get(category='namoz', slug='namozdagi-xatolar')
+        sections = list(topic.sections.all())
+        self.assertEqual([s.title for s in sections][:3], ['Namozni buzuvchi amallar', 'Namozdagi harom amallar', 'Namozdagi makruh amallar'])
+        self.assertEqual([i.title for i in sections[0].items.all()], ['Namozda gapirish.', 'Kishiga salom berish.'])
+        self.assertTrue(all(s.status == 'published' and s.sources.filter(url__startswith='https://muslim.uz/uz/c/prayer#block').exists() for s in sections))
+        data = self.client.get('/api/namoz/topics/namozdagi-xatolar/').json()
+        self.assertEqual(len(data['sections']), 4)
+        call_command('build_namoz_xatolar', '--offline', stdout=io.StringIO())  # qayta ishga tushirish xavfsiz
+        self.assertEqual(Topic.objects.filter(slug='namozdagi-xatolar').count(), 1)
+        self.assertEqual(topic.sections.count(), 4)

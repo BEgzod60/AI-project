@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'apps.ai',
     'apps.mosques',
     'apps.quran',
+    'apps.contact',
+    'apps.developer',
 ]
 
 MIDDLEWARE = [

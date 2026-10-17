@@ -25,8 +25,8 @@ const FEATURES = [
   { to: '/iymon', icon: <BookIcon />, title: 'Iymon', subtitle: 'Iymon asoslari va aqidaviy masalalar' },
   { to: '/namoz-organish', icon: <GraduateIcon />, title: "Namoz o'rganish", subtitle: 'Rasmlar va audio bilan bosqichma-bosqich' },
   { to: '/qibla', icon: <CompassIcon />, title: 'Qibla', subtitle: 'Qibla yo\u2018nalishini topish (kompas)' },
-  { to: '/suralar', icon: <SurahIcon />, title: 'Suralar va zam suralar', subtitle: "Arabcha, o'zbekcha va ma'nosi" },
-  { to: '/loyiha-haqida', icon: <InfoIcon />, title: 'Loyiha haqida', subtitle: 'Iymon jamoasi bilan tanishing' },
+  { to: '/suralar', icon: <SurahIcon />, title: 'Suralar va oyatlar', subtitle: "Arabcha, o'zbekcha va ma'nosi" },
+  { to: '/loyiha-haqida', icon: <InfoIcon />, title: 'Loyiha haqida', subtitle: 'Maqsad, tamoyillar va manbalar' },
 ];
 
 const REASONS = [

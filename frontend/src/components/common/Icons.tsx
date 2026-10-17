@@ -63,6 +63,12 @@ export const InfoIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const CodeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14" />
+  </Svg>
+);
+
 export const ArrowRightIcon = (p: IconProps) => (
   <Svg {...p}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-5-5 5 5-5 5" />

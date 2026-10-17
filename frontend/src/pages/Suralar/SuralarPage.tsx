@@ -146,8 +146,8 @@ export function SuralarPage() {
         <div aria-hidden className="absolute inset-0 bg-cover bg-[position:70%_center] md:bg-right" style={{ backgroundImage: 'url(/images/suralar/hero.webp)' }} />
         <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-900/85 to-primary-900/10 md:via-primary-900/65" />
         <div className="relative px-5 py-8 md:px-10 md:py-12">
-          <Breadcrumb items={[{ label: 'Bosh sahifa', to: '/' }, { label: 'Suralar va zam suralar' }]} />
-          <h1 className="mt-4 font-display text-4xl font-extrabold md:text-5xl">Suralar va <span className="text-accent-400">zam suralar</span></h1>
+          <Breadcrumb items={[{ label: 'Bosh sahifa', to: '/' }, { label: 'Suralar va oyatlar' }]} />
+          <h1 className="mt-4 font-display text-4xl font-extrabold md:text-5xl">Suralar va <span className="text-accent-400">oyatlar</span></h1>
           <p className="mt-3 max-w-xl text-base leading-relaxed text-white/85">Qur’ondagi 114 surani o‘qing va ma’nolarini o‘rganing. Namozda o‘qiladigan qisqa suralar alohida jamlangan.</p>
           <label className="relative mt-5 block max-w-md">
             <span className="sr-only">Sura qidirish</span>

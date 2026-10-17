@@ -6,6 +6,7 @@ from django.urls import include, path
 
 from apps.namoz.urls import iymon_urlpatterns
 from apps.namoz.views import search_view
+from apps.developer.urls import dev_urlpatterns, v1_urlpatterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -17,6 +18,9 @@ urlpatterns = [
     path('api/ai/', include('apps.ai.urls')),
     path('api/qibla/', include('apps.mosques.urls')),
     path('api/quran/', include('apps.quran.urls')),
+    path('api/aloqa/', include('apps.contact.urls')),
+    path('api/dev/', include(dev_urlpatterns)),
+    path('api/v1/', include(v1_urlpatterns)),
 ]
 
 # Ishlab chiqishda media (siqilgan Qur'on audiolari va h.k.) Django orqali beriladi.

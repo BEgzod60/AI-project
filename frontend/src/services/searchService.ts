@@ -16,6 +16,6 @@ export const SEARCH_PAGES = [
   { label: 'Namoz', to: '/namoz', keywords: 'namoz tahorat g‘usl tayammum suralar duolar' },
   { label: 'Namoz vaqtlari', to: '/namoz-vaqtlari', keywords: 'namoz vaqtlari bomdod peshin asr shom xufton taqvim qibla hijriy' },
   { label: 'Iymon', to: '/iymon', keywords: 'iymon aqida din shariat halol harom' },
-  { label: 'Suralar va zam suralar', to: '/suralar', keywords: 'sura suralar zam sura qur’on quron fotiha ixlos falaq nos oyat ma’nosi tarjima' },
+  { label: 'Suralar va oyatlar', to: '/suralar', keywords: 'sura suralar zam sura qur’on quron fotiha ixlos falaq nos oyat ma’nosi tarjima' },
   { label: 'Qibla', to: '/qibla', keywords: 'qibla ka’ba kaaba yo‘nalish kompas masjid yaqin masjidlar' },
 ];

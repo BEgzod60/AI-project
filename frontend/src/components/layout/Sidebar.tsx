@@ -7,6 +7,7 @@ import {
   GraduateIcon,
   HomeIcon,
   InfoIcon,
+  CodeIcon,
   MosqueIcon,
   QuoteIcon,
   SurahIcon,
@@ -25,7 +26,8 @@ const navItems: NavItem[] = [
   { to: '/iymon', icon: <BookIcon />, label: 'Iymon' },
   { to: '/namoz-organish', icon: <GraduateIcon />, label: "Namoz o'rganish" },
   { to: '/qibla', icon: <CompassIcon />, label: 'Qibla' },
-  { to: '/suralar', icon: <SurahIcon />, label: 'Suralar va zam suralar' },
+  { to: '/suralar', icon: <SurahIcon />, label: 'Suralar va oyatlar' },
+  { to: '/dasturchilar', icon: <CodeIcon />, label: 'API (dasturchilar)' },
   { to: '/loyiha-haqida', icon: <InfoIcon />, label: 'Loyiha haqida' },
 ];
 

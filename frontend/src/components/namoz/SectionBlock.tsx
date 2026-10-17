@@ -69,7 +69,7 @@ function Cards({ items }: { items: TopicSection['items'] }) {
     <div className="mt-5 grid gap-4 sm:grid-cols-2">
       {items.map((item, i) => (
         <div key={i} className="rounded-2xl bg-primary-50 p-5 ring-1 ring-primary-100 dark:bg-primary-900/30 dark:ring-primary-800">
-          <h4 className="font-display font-bold text-primary-800 dark:text-emerald-300">{item.title}</h4>
+          <h4 className="font-display font-bold text-primary-800 first-letter:uppercase dark:text-emerald-300">{item.title}</h4>
           {item.body && <Paragraphs text={item.body} className="mt-2 !text-sm" />}
         </div>
       ))}
