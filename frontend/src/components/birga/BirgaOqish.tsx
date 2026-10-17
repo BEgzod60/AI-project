@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BirgaSession } from '../../types/birga';
 import { useBirgaSettings } from '../../hooks/useBirgaSettings';
 import { useFullscreen } from '../../hooks/useScreenControls';
@@ -6,7 +6,7 @@ import { cacheSessionOffline } from '../../services/birgaService';
 import { BirgaSetup } from './BirgaSetup';
 import { BirgaLive, type SessionStats } from './BirgaLive';
 import { BirgaFinish } from './BirgaFinish';
-import type { Gender } from './shared';
+import { defaultZamChoice, type Gender, type ZamChoice } from './shared';
 
 type Phase = 'setup' | 'live' | 'done';
 
@@ -28,7 +28,9 @@ export function BirgaOqish({ session, initialGender, initialZam, onExit, onPart,
   const [phase, setPhase] = useState<Phase>('setup');
   const [stats, setStats] = useState<SessionStats | null>(null);
   const [gender, setGender] = useState<Gender>(initialGender);
-  const [zam, setZam] = useState(() => (session.zam_suras.includes(initialZam) ? initialZam : session.zam_suras[0] ?? ''));
+  // Har rakat uchun alohida zam sura: foydalanuvchi tanlaganlari + qolganlari standart (takrorlanmaydi)
+  const [picked, setPicked] = useState<ZamChoice>({});
+  const zam = useMemo(() => defaultZamChoice(session, initialZam, picked), [session, initialZam, picked]);
 
   useEffect(() => {
     if (settings.offline && !session.offline) cacheSessionOffline(session);
@@ -64,7 +66,7 @@ export function BirgaOqish({ session, initialGender, initialZam, onExit, onPart,
           settings={settings}
           update={update}
           zam={zam}
-          onZam={setZam}
+          onZam={(rakat, slug) => setPicked((p) => ({ ...p, [rakat]: slug }))}
           gender={gender}
           onGender={setGender}
           offline={!!session.offline}

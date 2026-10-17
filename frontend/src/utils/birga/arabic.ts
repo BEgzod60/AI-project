@@ -72,7 +72,8 @@ export interface MatchResult {
   indices: number[];
 }
 
-const LOOKAHEAD = 4;
+// Brauzer bir necha so'zni tanimay o'tkazib yuborishi mumkin — shuncha so'z oldinga qidiriladi
+const LOOKAHEAD = 10;
 
 /** Eshitilgan so'zlarni kutilgan matn bilan tartib bo'yicha moslaydi (o'tkazib yuborilgan so'zlarga chidamli) */
 export function matchRecitation(expected: string[], heardText: string): MatchResult {

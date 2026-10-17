@@ -10,6 +10,7 @@ import { AudioPlayer } from '../learning/AudioPlayer';
 import { MicIndicator, Segmented, listeningState } from './shared';
 import { ZamSuraSelect } from './ZamSuraSelect';
 import { PartPicker } from './PartPicker';
+import { MuslimUzAttribution, SourceLine } from './Sources';
 
 interface Props {
   session: BirgaSession;
@@ -198,7 +199,12 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
               )}
 
               {listening && speech.transcript && <HeardLatin transcript={speech.transcript} ayahs={latin} className="mt-3" />}
-              <p className="mt-3 text-[11px] leading-relaxed text-white/45">
+              <div className="mt-3 space-y-0.5 border-t border-white/10 pt-2">
+                <SourceLine prefix="Lotincha o‘qilishi va ma’nosi" title={rec.source_title} url={rec.source_url} />
+                {rec.arabic && <SourceLine prefix="Arabcha matn" title="Tanzil Project (CC BY 3.0)" url="https://tanzil.net" />}
+                <MuslimUzAttribution />
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-white/45">
                 {rec.arabic
                   ? 'So‘zlar Tanzil arabcha matni bilan solishtiriladi. Bu talaffuzni baholamaydi — faqat yordamchi belgi.'
                   : 'Bu duo uchun arabcha tasdiqlangan matn bazada yo‘q — faqat ovoz eshitilgani ko‘rsatiladi.'}

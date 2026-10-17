@@ -13,6 +13,7 @@ from .models import PrayerCategory, Recitation
 from .step_images import _image
 
 FOTIHA = 'fotiha'
+QUNUT = 'qunut'
 # O'tirib o'qiladiganlar — rasm «o'tirish» bo'lishi kerak
 SITTING_RECITATIONS = {'tashahhud', 'salavotlar', 'robbana'}
 
@@ -28,11 +29,12 @@ ACTION_TIMING = (4, 6)
 SETTINGS = {
     # Lotin yozuvidagi o'qilish matni: soniyasiga taxminan nechta harf o'qiladi
     'speeds': {'sekin': 7, 'ortacha': 10, 'tez': 14},
-    # Mikrofon sezgirligi: ovoz chegarasi (RMS) va sura so'zlari mosligi (ulush)
+    # Mikrofon sezgirligi: ovoz chegarasi (RMS) va sura so'zlari mosligi (ulush). Tilovatni brauzer
+    # hamma so'zini tanimaydi — oxirgi so'zlar ham tanilishi shart bo'lgani uchun ulush past bo'lishi mumkin.
     'sensitivity': {
-        'past': {'rms': 0.045, 'match': 0.8},
-        'ortacha': {'rms': 0.03, 'match': 0.65},
-        'yuqori': {'rms': 0.018, 'match': 0.5},
+        'past': {'rms': 0.045, 'match': 0.6},
+        'ortacha': {'rms': 0.03, 'match': 0.45},
+        'yuqori': {'rms': 0.018, 'match': 0.3},
     },
     'fallback_seconds': {'min': 3, 'max': 20, 'default': 6},
     'recitation_seconds': {'min': 4, 'max': 240},
@@ -45,12 +47,19 @@ SETTINGS = {
 # Salom lafzi — muslim.uz «Ikki rakatli farz namozini o'qish tartibi»
 SALOM_TEXT = 'Assalomu alaykum va rohmatulloh'
 SALOM_SOURCE = 'https://muslim.uz/uz/c/prayer/ikki-rakatli-farz-namozini-o-qish-tartibi'
+MUSLIM_UZ = 'O‘zbekiston musulmonlari idorasi rasmiy sayti (muslim.uz)'
+SALOM_SOURCE_TITLE = f'{MUSLIM_UZ} — «Ikki rakatli farz namozini o‘qish tartibi»'
+SUNNAT4_SOURCE = ('https://muslim.uz/uz/c/prayer/to-rt-rakatli-sunnat-namozni-o-qish-tartibi',
+                  f'{MUSLIM_UZ} — «To‘rt rakatli sunnat namozni o‘qish tartibi»')
+TANZIL_SOURCE = ('https://tanzil.net', 'Tanzil Project — Usmoniy Qur’on matni (CC BY 3.0)')
+OWNER_NOTE = 'Loyiha egasi ko‘rsatmasi (manbada alohida yozilmagan)'
 
 # Farz namozidan so'ng (muslim.uz manbalari bilan, aynan)
 AFTER_FARZ = [
     {
         'slug': 'istigfor', 'name': 'Istig‘for', 'kind': 'dua', 'surah_number': None,
         'transliteration': 'Astag‘firulloh', 'meaning': 'Allohdan mag‘firat so‘rayman', 'times': 3,
+        'source_title': f'{MUSLIM_UZ} — «Farz namozlaridan avval va keyingi sunnat namozlari» (Fatvo markazi)',
         # «...farz namozni tugatganlarida uch marta “Astag'firulloh” der edilar» (Imom Muslim rivoyati)
         'source_url': 'https://muslim.uz/uz/e/post/4478-farz-namozlaridan-avval-va-keyingi-sunnat-namozlari',
     },
@@ -59,6 +68,7 @@ AFTER_FARZ = [
         'transliteration': 'Allohumma, antas-salom va minkas-salom, tabarokta ya zaljaloli val-ikrom',
         'meaning': 'Allohim! Sen Salomsan, salomatlik Sendandir. Sen Tabarruksan, ey jalol va ikrom egasi!',
         'times': 1,
+        'source_title': f'{MUSLIM_UZ} — «Namozdan so‘ng o‘qiladigan duolar»',
         # «(Ushbu duo farz namozlaridan so'ng o'qiladi)»
         'source_url': 'https://muslim.uz/uz/c/prayer/namozdan-so-ng-o-qiladigan-duolar',
     },
@@ -86,8 +96,11 @@ SENTENCE_RE = re.compile(r'(?<=[.!?])\s+')
 
 
 def _tidy(text):
-    """Manbadagi bir xil zikrning yozilishi bir xil bo'lsin («Subhana robbiyal» → «Subhana Robbiyal»)."""
-    return re.sub(r'^Subhana robbiy', 'Subhana Robbiy', text.strip())
+    """Manbadagi bir xil zikrning yozilishi bir xil bo'lsin («Subhana robbiyal» → «Subhana Robbiyal»).
+    Sajda tasbehi «a’la» bilan — muslim.uz «To'rt rakatli farz namozni o'qish tartibi»dagi kabi
+    («Subhaana Robbiyal a’la»), loyiha egasi ko'rsatmasi bilan."""
+    text = re.sub(r'^Subhana robbiy', 'Subhana Robbiy', text.strip())
+    return re.sub(r'Robbiyal-a’lo\b', 'Robbiyal-a’la', text)
 
 
 def extract_zikr(text, label=''):
@@ -228,6 +241,7 @@ def build_sequence(steps):
             # Ruku', sajda va boshqa holatlarda ekranda faqat o'qiladigan zikr ko'rsatiladi
             'zikr': extract_zikr(step.text) if kind == 'posture' else action_zikr(step) if kind == 'action' else [],
             'source_url': step.source_url,
+            'source_title': step.source_title,
             'segment': state['segment'],
         }
         stage.update(override or {})
@@ -265,7 +279,19 @@ def build_sequence(steps):
                 'timing': (2, 4), 'images': imgs[:1] or images[-1:],
                 'zikr': [{'text': quoted, 'meaning': '', 'times': 1, 'label': label}],
                 'source_url': step.source_url or SALOM_SOURCE,
+                'source_title': step.source_title or SALOM_SOURCE_TITLE,
             })
+
+    def add_qunut_takbir(step):
+        """Vitr: zam suradan keyin ruku'ga bormay «Allohu akbar» deb qo'llar quloq to'g'risigacha ko'tariladi,
+        so'ng qovushtirilib Qunut o'qiladi (qadam matnidan, aynan)."""
+        takbir = next((z for z in extract_zikr(step.text) if z['text'].lower().startswith('allohu akbar')), None)
+        if not takbir:
+            return
+        add(step, 'action', title='Qunut takbiri', override={
+            'timing': (3, 5), 'images': [_image('takbir')],
+            'zikr': [{**takbir, 'times': 1, 'label': 'Qo‘llar quloq to‘g‘risigacha ko‘tariladi'}],
+        })
 
     def add_step(step):
         slugs = _recitation_slugs(step)
@@ -280,6 +306,8 @@ def build_sequence(steps):
         zam_after = slugs.index(FOTIHA) if FOTIHA in slugs else len(slugs) - 1
         sitting = [img for img in (step.images or []) if 'otirish' in img.get('src', '')][:1]
         for n, slug in enumerate(slugs):
+            if slug == QUNUT:
+                add_qunut_takbir(step)
             add(step, 'recitation', recitation=slug,
                 override={'images': sitting} if slug in SITTING_RECITATIONS and sitting else None)
             if slug == FOTIHA:
@@ -390,7 +418,7 @@ def session_payload(category: PrayerCategory, part=None):
     base = {
         'category': {'slug': category.slug, 'name': category.name, 'image': category.image},
         'supported': False, 'reason': '', 'rakats': 0, 'stages': [], 'recitations': {}, 'zam_suras': [],
-        'parts': [], 'part': None,
+        'parts': [], 'part': None, 'sources': [],
         'settings': SETTINGS, 'safety_notice': SAFETY_NOTICE,
     }
     if not category.is_published:
@@ -431,7 +459,7 @@ def session_payload(category: PrayerCategory, part=None):
                 'slug': r.slug, 'name': r.name, 'kind': r.kind, 'surah_number': r.surah_number,
                 'transliteration': r.transliteration, 'meaning': r.meaning,
                 'arabic': arabic.get(r.surah_number) if r.surah_number else None,
-                'source_url': r.source_url,
+                'source_url': r.source_url, 'source_title': r.source_title,
             }
             for r in recs
         },
@@ -439,7 +467,30 @@ def session_payload(category: PrayerCategory, part=None):
     for item in AFTER_FARZ:
         if any(st['recitation'] == item['slug'] for st in stages):
             base['recitations'][item['slug']] = {k: v for k, v in item.items() if k != 'times'} | {'arabic': None}
+    base['sources'] = collect_sources(base, chosen)
     return base
+
+
+def collect_sources(payload, part):
+    """Rejimda ishlatilgan barcha manbalar (takrorlanmasdan): ketma-ketlik, matnlar, arabcha matn."""
+    out, seen = [], set()
+
+    def push(group, url, title):
+        if (url or title) and (url, title) not in seen:
+            seen.add((url, title))
+            out.append({'group': group, 'url': url or '', 'title': title or url})
+
+    for st in payload['stages']:
+        if not st['recitation']:
+            push('Namoz tartibi va zikrlar', st.get('source_url'), st.get('source_title'))
+    if part and part['kind'] == 'sunnat':
+        push('Namoz tartibi va zikrlar', *SUNNAT4_SOURCE) if part['count'] == 4 else push(
+            'Namoz tartibi va zikrlar', SALOM_SOURCE, f'{SALOM_SOURCE_TITLE} — «Ikki rakatli sunnat namozlarini o‘qish tartibi ham bundan farqlanmaydi»')
+    for rec in payload['recitations'].values():
+        push('Sura va duolar (lotincha o‘qilishi va ma’nosi)', rec.get('source_url'), rec.get('source_title'))
+    if any(rec.get('arabic') for rec in payload['recitations'].values()):
+        push('Arabcha matn (ovozni solishtirish uchun)', *TANZIL_SOURCE)
+    return out
 
 
 def add_after_farz(stages, rakats):
@@ -453,13 +504,14 @@ def add_after_farz(stages, rakats):
         stages.append({
             **base, 'images': sitting if item['slug'] == 'istigfor' else dua,
             'index': len(stages), 'kind': 'recitation', 'title': 'Namozdan so‘ng', 'recitation': item['slug'],
-            'text': item['transliteration'], 'timing': None, 'source_url': item['source_url'],
+            'text': item['transliteration'], 'timing': None,
+            'source_url': item['source_url'], 'source_title': item['source_title'],
             'zikr': [{'text': item['transliteration'], 'meaning': item['meaning'], 'times': item['times'],
                       'label': 'Salomdan so‘ng' if item['slug'] == 'istigfor' else 'Bir marta'}],
         })
     stages.append({
         **base, 'images': dua, 'index': len(stages), 'kind': 'action', 'title': 'Amiyn', 'recitation': None,
-        'text': 'Duodan so‘ng «Amiyn» deyiladi.', 'timing': (2, 3), 'source_url': '',
+        'text': 'Duodan so‘ng «Amiyn» deyiladi.', 'timing': (2, 3), 'source_url': '', 'source_title': OWNER_NOTE,
         'zikr': [{'text': 'Amiyn', 'meaning': '', 'times': 1, 'label': 'Duodan so‘ng'}],
     })
 

@@ -22,6 +22,7 @@ export interface Stage {
   /** Ruku', sajda va h.k.: faqat o'qiladigan zikr (qadam matnidagi «...» dan, aynan) */
   zikr: Zikr[];
   source_url: string;
+  source_title: string;
 }
 
 export interface Zikr {
@@ -43,6 +44,7 @@ export interface BirgaRecitation {
   /** Tanzil arabcha oyatlari — faqat suralar uchun (ovozni solishtirish) */
   arabic: string[] | null;
   source_url: string;
+  source_title: string;
 }
 
 export interface BirgaSettingsSchema {
@@ -89,4 +91,6 @@ export interface BirgaSession {
   zam_suras: string[];
   settings: BirgaSettingsSchema;
   safety_notice: string;
+  /** Rejimda ishlatilgan barcha manbalar */
+  sources: { group: string; title: string; url: string }[];
 }

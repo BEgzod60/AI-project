@@ -79,8 +79,28 @@ class SequenceTests(TestCase):
         self.step('Ruku’, sajda, qa’da va salom', [self.tashahhud])
         stages, rakats = self.sequence()
         self.assertEqual(rakats, 3)
+        # Qunut takbiri qadam matnida bo'lmasa — qo'shilmaydi
         self.assertEqual(self.labels(stages)[-9:], ['fotiha', 'Amiyn', 'zam', 'qunut', 'Ruku’', 'Sajda', 'tashahhud',
                                                   'O‘ngga salom', 'Chapga salom'])
+
+    def test_vitr_qunut_takbir_between_zam_and_qunut(self):
+        self.step('Niyat')
+        self.step('Qiroat', [self.auzu, self.fotiha], zam=True)
+        self.step('Ruku’')
+        self.step('Sajda')
+        self.step('Ikkinchi rakat', [self.fotiha], zam=True)
+        third = self.step('Uchinchi rakat va Qunut', [self.fotiha, self.qunut], zam=True)
+        third.text = ('Uchinchi rakatga turib “Bismillah” aytilib, Fotiha va yana bir sura o‘qiladi va « Allohu akbar », '
+                      'deb qo‘llar quloq to‘g‘risigacha ko‘tariladi. So‘ng Qunut duosi o‘qiladi.')
+        third.save()
+        stages = self.sequence()[0]
+        labels = self.labels(stages)
+        i = labels.index('qunut')
+        self.assertEqual(labels[i - 3:i + 2], ['Amiyn', 'zam', 'Qunut takbiri', 'qunut', 'Ruku’'])
+        takbir = stages[i - 1]
+        self.assertEqual((takbir['zikr'][0]['text'], takbir['zikr'][0]['label']),
+                         ('Allohu akbar', 'Qo‘llar quloq to‘g‘risigacha ko‘tariladi'))
+        self.assertIn('takbir', takbir['images'][0]['src'])
 
     def test_timings(self):
         self.four_rakat()
@@ -164,16 +184,16 @@ class SequenceTests(TestCase):
         self.assertNotIn('Jalsa va ikkinchi sajda', stages)
         second = stages['Ikkinchi sajda']
         said = lambda st: [(z['label'], z['text']) for z in st['zikr']]  # noqa: E731
-        self.assertEqual(said(second), [('Borishda', 'Allohu akbar'), ('Sajdada', 'Subhana Robbiyal-a’lo'), ('Turishda', 'Allohu akbar')])
+        self.assertEqual(said(second), [('Borishda', 'Allohu akbar'), ('Sajdada', 'Subhana Robbiyal-a’la'), ('Turishda', 'Allohu akbar')])
         self.assertEqual(said(stages['Ruku’']), [('Borishda', 'Allohu akbar'), ('Ruku’da', 'Subhana Robbiyal-’aziym'),
                                                 ('Turishda', 'Sami’allohu liman hamidah')])
         self.assertEqual(said(stages['Qavma (tik turish)']), [('Tik turgach', 'Robbanaa, lakal hamd')])
-        self.assertEqual(said(stages['Sajda']), [('Borishda', 'Allohu akbar'), ('Sajdada', 'Subhana Robbiyal-a’lo'), ('Turishda', 'Allohu akbar')])
+        self.assertEqual(said(stages['Sajda']), [('Borishda', 'Allohu akbar'), ('Sajdada', 'Subhana Robbiyal-a’la'), ('Turishda', 'Allohu akbar')])
         self.assertEqual(second['images'][0]['src'], '/sajda.webp')
         self.assertEqual(second['timing'], (4, 6))
         self.assertEqual(stages['Jalsa']['zikr'], [])  # turishdagi takbir sajdada ko'rsatiladi
         self.assertEqual(stages['Jalsa']['timing'], (3, 5))
-        self.assertEqual(stages['Sajda']['zikr'][1], {'text': 'Subhana Robbiyal-a’lo', 'meaning': 'Oliy Robbim pokdir', 'times': 3, 'label': 'Sajdada'})
+        self.assertEqual(stages['Sajda']['zikr'][1], {'text': 'Subhana Robbiyal-a’la', 'meaning': 'Oliy Robbim pokdir', 'times': 3, 'label': 'Sajdada'})
 
     def test_amiyn_after_every_fotiha(self):
         self.four_rakat()
@@ -264,6 +284,18 @@ class SequenceTests(TestCase):
         self._parts_category()
         self.assertEqual(self._part(9)['part'], 1)
         self.assertEqual(self.client.get('/api/namoz-organish/test-peshin/birga/?qism=abc').json()['part'], 1)
+
+    def test_sources_listed_for_every_text(self):
+        self._parts_category()
+        data = self._part()
+        groups = {x['group'] for x in data['sources']}
+        self.assertIn('Namoz tartibi va zikrlar', groups)
+        self.assertIn('Sura va duolar (lotincha o‘qilishi va ma’nosi)', groups)
+        urls = {x['url'] for x in data['sources']}
+        self.assertTrue(any('4478' in u for u in urls))  # istig'for manbasi
+        self.assertTrue(all('source_title' in st for st in data['stages']))
+        sunnat = self._part(0)
+        self.assertTrue(any('to-rt-rakatli-sunnat' in x['url'] for x in sunnat['sources']))
 
     def test_lesson_payload_flags_support(self):
         self.four_rakat()

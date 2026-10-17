@@ -5,8 +5,9 @@ import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useWakeLock } from '../../hooks/useScreenControls';
 import { arabicWords, matchRecitation } from '../../utils/birga/arabic';
 import { AYAH_HEARD, latinAyahs } from '../../utils/birga/latin';
-import { evaluateStage, expectedSeconds, type AdvanceReason, type EngineResult } from '../../utils/birga/engine';
-import { CountdownRing, MicIndicator, listeningState, stageImage, stageLabel, stageRecitation, type Gender } from './shared';
+import { evaluateStage, expectedSeconds, scrollProgress, type AdvanceReason, type EngineResult } from '../../utils/birga/engine';
+import { SourceLine } from './Sources';
+import { CountdownRing, MicIndicator, listeningState, stageImage, stageLabel, stageRecitation, type Gender, type ZamChoice } from './shared';
 
 export interface SessionStats {
   seconds: number;
@@ -21,7 +22,7 @@ type TextTab = 'lotin' | 'arab' | 'mano' | 'tafsilot';
 interface Props {
   session: BirgaSession;
   settings: BirgaSettings;
-  zam: string;
+  zam: ZamChoice;
   gender: Gender;
   fullscreen: { supported: boolean; isFullscreen: boolean; toggle: () => void };
   onExit: () => void;
@@ -48,6 +49,9 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
   const finished = useRef(false);
   // Zaxira taymer qachon boshlangani (AI tasdiqlay olmaganda)
   const countdownFrom = useRef<number | null>(null);
+  // Shu bosqichda jami gapirilgan vaqt (soniya) va oxirgi tik vaqti
+  const spokeFor = useRef(0);
+  const lastTick = useRef(performance.now());
   const [result, setResult] = useState<EngineResult>({ advance: null, countdownFrom: null, countdown: null });
 
   const voice = useVoiceActivity(sens.rms);
@@ -96,6 +100,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
     stageStart.current = performance.now();
     pausedElapsed.current = 0;
     countdownFrom.current = null;
+    spokeFor.current = 0;
     setResult({ advance: null, countdownFrom: null, countdown: null });
     resetTranscript();
     setTab('lotin');
@@ -111,6 +116,9 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
     if (paused) return;
     const last = voice.lastVoiceAt.current;
     const heard = last !== null && last >= stageStart.current;
+    const dt = Math.min(1, (now - lastTick.current) / 1000);
+    lastTick.current = now;
+    if (voice.speaking) spokeFor.current += dt;
     const r = evaluateStage({
       stage, elapsed, expected, fallback: settings.fallback,
       voice: {
@@ -118,6 +126,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
         speaking: voice.speaking,
         heard,
         silence: heard ? (now - last!) / 1000 : elapsed,
+        spokeFor: spokeFor.current,
       },
       match,
       matchThreshold: sens.match,
@@ -129,13 +138,18 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now]);
 
-  // Uzun matn sekin-asta o'z-o'zidan suriladi (qo'l tegizmasdan o'qish uchun)
+  // Uzun matn o'z-o'zidan pastga suriladi (qo'l tegizmasdan o'qish uchun):
+  // AI so'zlarni tanisa — o'qilayotgan oyat tepaga keladi; aks holda vaqt bo'yicha (tezroq)
+  const lastHeardAyah = latin ? latin.reduce((acc, a, i) => (a.heard > 0 ? i : acc), -1) : -1;
   useEffect(() => {
     const el = textRef.current;
-    if (!el || tab !== 'lotin' || el.scrollHeight <= el.clientHeight) return;
-    const progress = match && match.total ? Math.max(match.matched / match.total, elapsed / expected) : elapsed / expected;
-    el.scrollTo({ top: (el.scrollHeight - el.clientHeight) * Math.min(1, Math.max(0, progress - 0.15) * 1.2), behavior: 'smooth' });
-  }, [Math.floor(elapsed), tab]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!el || tab !== 'lotin' || paused) return;
+    const max = el.scrollHeight - el.clientHeight;
+    if (max <= 0) return;
+    const node = lastHeardAyah >= 0 ? el.querySelector<HTMLElement>(`[data-ayah="${lastHeardAyah}"]`) : null;
+    const top = node ? node.offsetTop - el.clientHeight * 0.2 : max * scrollProgress(elapsed, expected);
+    el.scrollTo({ top: Math.min(max, Math.max(0, top)), behavior: 'smooth' });
+  }, [Math.floor(elapsed * 4), tab, lastHeardAyah, paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ro'yxatda faol bosqich ko'rinib tursin — faqat ro'yxatning o'zi suriladi, sahifa emas
   useEffect(() => {
@@ -317,7 +331,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" /></svg>
               </button>
             </div>
-            <div ref={textRef} role="tabpanel" className={`mt-3 flex-1 overflow-y-auto overscroll-contain ${fullscreen.isFullscreen ? 'max-h-[60vh]' : 'max-h-[55vh] min-h-[8rem]'}`}>
+            <div ref={textRef} role="tabpanel" className={`relative mt-3 flex-1 overflow-y-auto overscroll-contain ${fullscreen.isFullscreen ? 'max-h-[60vh]' : 'max-h-[55vh] min-h-[8rem]'}`}>
               {tab === 'lotin' && zikr.length > 0 && (
                 <ul className="flex flex-col items-center gap-4 text-center">
                   {zikr.map((z, i) => (
@@ -342,7 +356,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
               {tab === 'lotin' && zikr.length === 0 && stage.kind !== 'posture' && latin && (
                 <p className={`text-center font-semibold text-white ${textSize}`}>
                   {latin.map((a) => (
-                    <span key={a.number} className={`transition-colors ${a.heard >= AYAH_HEARD ? 'text-emerald-300' : ''}`}>
+                    <span key={a.number} data-ayah={a.number - 1} className={`transition-colors ${a.heard >= AYAH_HEARD ? 'text-emerald-300' : ''}`}>
                       {a.label && <span className="text-white/35">{a.label}. </span>}{a.latin}{' '}
                     </span>
                   ))}
@@ -356,6 +370,16 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
               )}
               {tab === 'mano' && <p className="whitespace-pre-line text-lg leading-8 text-white/85">{rec?.meaning}</p>}
               {tab === 'tafsilot' && <p className="whitespace-pre-line text-lg leading-8 text-white/85">{instruction}</p>}
+            </div>
+            {/* Ko'rsatilayotgan matnning manbasi */}
+            <div className="mt-2 text-center">
+              {tab === 'arab' ? (
+                <SourceLine prefix="Arabcha matn" title="Tanzil Project (CC BY 3.0)" url="https://tanzil.net" />
+              ) : rec && (tab === 'lotin' || tab === 'mano') && !stage.zikr?.length ? (
+                <SourceLine title={rec.source_title} url={rec.source_url} />
+              ) : (
+                <SourceLine title={stage.source_title} url={stage.source_url} />
+              )}
             </div>
             {match && match.matched > 0 && (
               <p className="mt-2 text-center text-[11px] text-emerald-300/80">Tanilgan so‘zlar: {match.matched} / {match.total}</p>

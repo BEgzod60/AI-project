@@ -2,16 +2,17 @@ import { useState } from 'react';
 import type { BirgaSession, BirgaSettings, Sensitivity, Speed } from '../../types/birga';
 import { isBrave, speechSupported } from '../../hooks/useSpeechRecognition';
 import { MicCheck } from './MicCheck';
-import { Segmented, Toggle, stageLabel, type Gender } from './shared';
+import { Segmented, Toggle, stageLabel, zamRakats, type Gender, type ZamChoice } from './shared';
 import { ZamSuraSelect } from './ZamSuraSelect';
 import { PartPicker } from './PartPicker';
+import { SourcesList } from './Sources';
 
 interface Props {
   session: BirgaSession;
   settings: BirgaSettings;
   update: <K extends keyof BirgaSettings>(key: K, value: BirgaSettings[K]) => void;
-  zam: string;
-  onZam: (slug: string) => void;
+  zam: ZamChoice;
+  onZam: (rakat: number, slug: string) => void;
   gender: Gender;
   onGender: (g: Gender) => void;
   offline: boolean;
@@ -89,6 +90,8 @@ export function BirgaSetup({ session, settings, update, zam, onZam, gender, onGe
           </ol>
           <p className="mt-3 text-[11px] text-white/45">Ketma-ketlik muslim.uz’dagi tasdiqlangan dars qadamlaridan tuzilgan; AI matn yaratmaydi.</p>
         </div>
+
+        <SourcesList sources={session.sources} />
       </div>
 
       {/* O'ng: sozlamalar */}
@@ -99,7 +102,23 @@ export function BirgaSetup({ session, settings, update, zam, onZam, gender, onGe
         </h3>
 
         {zamOptions.length > 0 && (
-          <ZamSuraSelect options={zamOptions} value={zam} onChange={onZam} />
+          <div className="space-y-2">
+            <p className="text-xs text-white/60">Har rakatda o‘qiladigan zam sura</p>
+            {zamRakats(session).map((rakat) => {
+              const value = zam[rakat] ?? zamOptions[0].slug;
+              const repeated = zamRakats(session).find((r) => r !== rakat && zam[r] === value);
+              return (
+                <ZamSuraSelect
+                  key={rakat}
+                  label={`${rakat}-rakat zam surasi`}
+                  options={zamOptions}
+                  value={value}
+                  onChange={(slug) => onZam(rakat, slug)}
+                  warning={repeated ? `Bu sura ${repeated}-rakatda ham tanlangan` : undefined}
+                />
+              );
+            })}
+          </div>
         )}
 
         <div>

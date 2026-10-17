@@ -21,6 +21,16 @@ export function expectedSeconds(stage: Stage, text: string, settings: BirgaSetti
   return Math.min(max, Math.max(min, Math.round(text.replace(/\s+/g, ' ').length / cps)));
 }
 
+/**
+ * Uzun matnni vaqt bo'yicha surish ulushi (0..1): darhol boshlanadi va taxminiy vaqtning 75% ida
+ * oxiriga yetadi — o'quvchi matndan orqada qolmasin.
+ */
+export const SCROLL_FINISH_AT = 0.75;
+export function scrollProgress(elapsed: number, expected: number): number {
+  if (expected <= 0) return 1;
+  return Math.min(1, Math.max(0, elapsed / (expected * SCROLL_FINISH_AT)));
+}
+
 export interface EngineInput {
   stage: Stage;
   /** Bosqich boshlanganidan beri o'tgan vaqt (soniya) */
@@ -36,6 +46,8 @@ export interface EngineInput {
     heard: boolean;
     /** Oxirgi ovozdan beri jimlik (soniya) */
     silence: number;
+    /** Shu bosqichda jami gapirilgan vaqt (soniya) */
+    spokeFor: number;
   };
   /** Sura bo'lsa va nutqni aniqlash ishlasa — moslik natijasi */
   match: MatchResult | null;
@@ -54,13 +66,19 @@ export interface EngineResult {
 
 /** O'qib bo'lingach shuncha jimlikdan keyin zaxira taymer boshlanadi (oyatlar orasidagi nafasga chidamli) */
 export const SILENCE_BEFORE_COUNTDOWN = 2.5;
+/**
+ * Matni tanib bo'lmaydigan duolar (arabchasi bazada yo'q) va tanilmagan suralar uchun: taxminiy vaqtning
+ * kamida shuncha qismi davomida gapirilgan bo'lsa, jimlikdan so'ng zaxira taymersiz o'tiladi.
+ */
+export const VOICE_COVERAGE = 0.5;
 /** Shovqin tufayli «gapiryapti» to'xtamasa ham cheksiz kutilmaydi */
 export const HARD_CAP_FACTOR = 3;
 
 /**
  * Sura va duolarda: avval AI tinglaydi, taymer yo'q. Nutq tanilib, oxiriga yetilsa — darhol o'tiladi.
+ * Yetarlicha gapirilib (taxminiy vaqtning yarmidan ko'pi), so'ng jimlik bo'lsa ham — taymersiz o'tiladi.
  * Zaxira taymer faqat AI tasdiqlay olmaganda boshlanadi:
- *  - foydalanuvchi o'qib, jim bo'lib qoldi (lekin matn tanilmadi), yoki
+ *  - foydalanuvchi qisqa gapirib, jim bo'lib qoldi (matn tanilmadi), yoki
  *  - umuman ovoz eshitilmadi va taxminiy vaqt o'tdi (ichida o'qilgan bo'lishi mumkin), yoki
  *  - mikrofon ishlamaydi (unda taymer boshidan: taxminiy vaqt + zaxira).
  * Foydalanuvchi qayta gapirsa taymer bekor bo'ladi.
@@ -83,6 +101,11 @@ export function evaluateStage(input: EngineInput): EngineResult {
   }
   if (elapsed >= expected * HARD_CAP_FACTOR + fallback) {
     return { advance: voice.heard ? 'voice' : 'timer', countdownFrom: null, countdown: null };
+  }
+
+  // O'qib bo'lindi: yetarlicha gapirildi va so'ng jimlik — taymersiz o'tiladi
+  if (voice.heard && !voice.speaking && voice.silence >= SILENCE_BEFORE_COUNTDOWN && voice.spokeFor >= expected * VOICE_COVERAGE) {
+    return { advance: 'voice', countdownFrom: null, countdown: null };
   }
 
   const aiGaveUp = voice.speaking

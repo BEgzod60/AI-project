@@ -4,13 +4,52 @@ import type { SpeechStatus } from '../../hooks/useSpeechRecognition';
 
 export type Gender = 'erkak' | 'ayol';
 
-/** Bosqichda o'qiladigan sura/duo (zam sura — foydalanuvchi tanlagani) */
-export function stageRecitation(stage: Stage, session: BirgaSession, zam: string): BirgaRecitation | null {
-  const slug = stage.zam ? zam : stage.recitation;
+/** Har bir rakatda o'qiladigan zam sura: { rakat: slug } */
+export type ZamChoice = Record<number, string>;
+
+/** Zam sura o'qiladigan rakatlar (tartiblangan) */
+export function zamRakats(session: BirgaSession): number[] {
+  return [...new Set(session.stages.filter((s) => s.zam).map((s) => s.rakat))].sort((a, b) => a - b);
+}
+
+/**
+ * Har rakatning zam surasi: foydalanuvchi tanlaganlari (`picked`) saqlanadi, qolganlari — har rakatda
+ * boshqa sura, Qur'on tartibida ketma-ket (masalan Ixlos → Falaq) va tanlanganlari bilan takrorlanmaydi.
+ */
+export function defaultZamChoice(session: BirgaSession, base: string, picked: ZamChoice = {}): ZamChoice {
+  const list = session.zam_suras;
+  const rakats = zamRakats(session);
+  if (!list.length) return {};
+  let start = Math.max(0, list.indexOf(base));
+  if (start + rakats.length > list.length) start = Math.max(0, list.length - rakats.length);
+  const valid: ZamChoice = {};
+  for (const r of rakats) if (picked[r] && list.includes(picked[r])) valid[r] = picked[r];
+  const used = new Set(Object.values(valid));
+  const out: ZamChoice = {};
+  rakats.forEach((r, i) => {
+    if (valid[r]) {
+      out[r] = valid[r];
+      return;
+    }
+    let k = (start + i) % list.length;
+    for (let tries = 0; used.has(list[k]) && tries < list.length; tries++) k = (k + 1) % list.length;
+    out[r] = list[k];
+    used.add(list[k]);
+  });
+  return out;
+}
+
+function zamFor(zam: ZamChoice, rakat: number, session: BirgaSession): string {
+  return zam[rakat] ?? Object.values(zam)[0] ?? session.zam_suras[0] ?? '';
+}
+
+/** Bosqichda o'qiladigan sura/duo (zam sura — foydalanuvchi shu rakat uchun tanlagani) */
+export function stageRecitation(stage: Stage, session: BirgaSession, zam: ZamChoice): BirgaRecitation | null {
+  const slug = stage.zam ? zamFor(zam, stage.rakat, session) : stage.recitation;
   return slug ? session.recitations[slug] ?? null : null;
 }
 
-export function stageLabel(stage: Stage, session: BirgaSession, zam: string): string {
+export function stageLabel(stage: Stage, session: BirgaSession, zam: ZamChoice): string {
   return stageRecitation(stage, session, zam)?.name ?? stage.title;
 }
 

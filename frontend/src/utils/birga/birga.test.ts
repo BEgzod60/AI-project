@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { BirgaSettings, BirgaSettingsSchema, Stage } from '../../types/birga';
 import { arabicWords, matchRecitation, normalizeArabic } from './arabic';
-import { HARD_CAP_FACTOR, SILENCE_BEFORE_COUNTDOWN, evaluateStage, expectedSeconds, type EngineInput } from './engine';
+import { HARD_CAP_FACTOR, SILENCE_BEFORE_COUNTDOWN, evaluateStage, expectedSeconds, scrollProgress, type EngineInput } from './engine';
 import { nextNoiseFloor, speechThreshold } from './vad';
 import { AYAH_HEARD, labeledTransliteration, latinAyahs, splitTransliteration } from './latin';
+import { defaultZamChoice } from '../../components/birga/shared';
+import type { BirgaSession } from '../../types/birga';
 
 const schema: BirgaSettingsSchema = {
   speeds: { sekin: 7, ortacha: 10, tez: 14 },
-  sensitivity: { past: { rms: 0.045, match: 0.8 }, ortacha: { rms: 0.03, match: 0.65 }, yuqori: { rms: 0.018, match: 0.5 } },
+  sensitivity: { past: { rms: 0.045, match: 0.6 }, ortacha: { rms: 0.03, match: 0.45 }, yuqori: { rms: 0.018, match: 0.3 } },
   fallback_seconds: { min: 2, max: 15, default: 4 },
   recitation_seconds: { min: 4, max: 240 },
   defaults: { speed: 'ortacha', sensitivity: 'ortacha', fallback: 4, large_text: false, wake_lock: true, night: false, speech: true, offline: true },
@@ -15,7 +17,7 @@ const schema: BirgaSettingsSchema = {
 
 const stage = (over: Partial<Stage> = {}): Stage => ({
   index: 0, step_order: 1, rakat: 1, kind: 'recitation', title: 'Qiroat', text: '', text_female: '',
-  images: [], recitation: 'fotiha', zam: false, timing: null, zikr: [], source_url: '', ...over,
+  images: [], recitation: 'fotiha', zam: false, timing: null, zikr: [], source_url: '', source_title: '', ...over,
 });
 
 const settings = (over: Partial<BirgaSettings> = {}): BirgaSettings => ({ ...schema.defaults, ...over });
@@ -58,6 +60,14 @@ describe('arabcha matnni solishtirish', () => {
     expect(matchRecitation(expected, 'قل هو الله').indices).toEqual([0, 1, 2]);
   });
 
+  it('brauzer bir necha so‘zni tanimasa ham oxirigacha moslaydi', () => {
+    const fotiha = arabicWords('بسم الله الرحمن الرحيم الحمد لله رب العالمين الرحمن الرحيم مالك يوم الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا الضالين');
+    // 6 ta so'z o'tkazib yuborildi (رب العالمين الرحمن الرحيم مالك يوم)
+    const r = matchRecitation(fotiha, 'بسم الله الرحمن الرحيم الحمد لله الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا الضالين');
+    expect(r.reachedEnd).toBe(true);
+    expect(r.ratio).toBeGreaterThan(0.7);
+  });
+
   it('bo‘sh natija', () => {
     expect(matchRecitation(expected, '')).toMatchObject({ matched: 0, reachedEnd: false });
   });
@@ -82,9 +92,10 @@ describe('taxminiy davomiylik', () => {
 });
 
 describe('keyingi bosqichga o‘tish qarori', () => {
-  const quiet = { active: true, speaking: false, heard: false, silence: 0 };
-  const talking = { active: true, speaking: true, heard: true, silence: 0 };
-  const stopped = (silence: number) => ({ active: true, speaking: false, heard: true, silence });
+  const quiet = { active: true, speaking: false, heard: false, silence: 0, spokeFor: 0 };
+  const talking = { active: true, speaking: true, heard: true, silence: 0, spokeFor: 5 };
+  // qisqa gapirib to'xtadi (yetarli emas) — zaxira taymer kerak
+  const stopped = (silence: number) => ({ active: true, speaking: false, heard: true, silence, spokeFor: 5 });
   const base = (over: Partial<EngineInput> = {}): EngineInput => ({
     stage: stage(), elapsed: 0, expected: 20, fallback: 6,
     voice: quiet, match: null, matchThreshold: 0.65, countdownFrom: null, ...over,
@@ -136,7 +147,7 @@ describe('keyingi bosqichga o‘tish qarori', () => {
   });
 
   it('mikrofon ishlamasa — taymer boshidan ishlaydi', () => {
-    const off = { active: false, speaking: false, heard: false, silence: 0 };
+    const off = { active: false, speaking: false, heard: false, silence: 0, spokeFor: 0 };
     expect(evaluateStage(base({ elapsed: 1, voice: off })).countdown).toEqual({ remaining: 25, total: 26 });
     expect(evaluateStage(base({ elapsed: 26, voice: off })).advance).toBe('timer');
   });
@@ -145,6 +156,13 @@ describe('keyingi bosqichga o‘tish qarori', () => {
     const cap = 20 * HARD_CAP_FACTOR + 6;
     expect(evaluateStage(base({ elapsed: cap - 1, voice: talking })).advance).toBeNull();
     expect(evaluateStage(base({ elapsed: cap, voice: talking })).advance).toBe('voice');
+  });
+
+  it('to‘liq o‘qib jim bo‘lsa — zaxira taymersiz o‘tadi (duolar uchun ham)', () => {
+    const done = { active: true, speaking: false, heard: true, silence: SILENCE_BEFORE_COUNTDOWN, spokeFor: 12 };
+    expect(evaluateStage(base({ elapsed: 15, voice: done })).advance).toBe('voice'); // 12 s ≥ 20 × 0.5
+    expect(evaluateStage(base({ elapsed: 15, voice: { ...done, silence: 1 } })).advance).toBeNull(); // oyatlar orasidagi nafas
+    expect(evaluateStage(base({ elapsed: 15, voice: { ...done, spokeFor: 6 } })).countdown).not.toBeNull(); // kam gapirdi
   });
 
   it('bir necha tik davomida: o‘qish → pauza → davom → tugatish', () => {
@@ -207,5 +225,42 @@ describe('eshitilgan nutq lotinchada (muslim.uz oyatlari bo‘yicha)', () => {
 
   it('oyatlar soni mos kelmasa taxmin qilmaydi', () => {
     expect(latinAyahs(IXLOS, '1. Qul huvallohu ahad 2. Allohus-somad', [0, 1])).toBeNull();
+  });
+});
+
+describe('uzun matnni surish', () => {
+  it('darhol boshlanadi va taxminiy vaqtning 75% ida oxiriga yetadi', () => {
+    expect(scrollProgress(0, 40)).toBe(0);
+    expect(scrollProgress(3, 40)).toBeCloseTo(0.1);
+    expect(scrollProgress(15, 40)).toBeCloseTo(0.5);
+    expect(scrollProgress(30, 40)).toBe(1);
+    expect(scrollProgress(99, 40)).toBe(1);
+  });
+});
+
+describe('har rakatga zam sura', () => {
+  const zamStage = (rakat: number): Stage => stage({ rakat, zam: true, recitation: null });
+  const session = (rakats: number[]) => ({
+    stages: rakats.map(zamStage),
+    zam_suras: ['fiyl', 'quraysh', 'maun', 'kavsar', 'kafirun', 'nasr', 'masad', 'ixlos', 'falaq', 'nas'],
+  }) as unknown as BirgaSession;
+
+  it('har rakatda boshqa sura, Qur’on tartibida', () => {
+    expect(defaultZamChoice(session([1, 2]), 'ixlos')).toEqual({ 1: 'ixlos', 2: 'falaq' });
+    expect(defaultZamChoice(session([1, 2, 3, 4]), 'kavsar')).toEqual({ 1: 'kavsar', 2: 'kafirun', 3: 'nasr', 4: 'masad' });
+  });
+
+  it('ro‘yxat oxiridan oshib ketmaydi va tanlanganlarini saqlaydi', () => {
+    expect(defaultZamChoice(session([1, 2, 3, 4]), 'nas')).toEqual({ 1: 'masad', 2: 'ixlos', 3: 'falaq', 4: 'nas' });
+    expect(defaultZamChoice(session([1, 2, 3, 4]), 'ixlos', { 1: 'kavsar' })[1]).toBe('kavsar');
+  });
+
+  it('qism almashsa (2 → 4 rakat) suralar takrorlanmaydi', () => {
+    const four = defaultZamChoice(session([1, 2, 3, 4]), 'ixlos');
+    expect(new Set(Object.values(four)).size).toBe(4);
+    expect(Object.values(four)).toEqual(['masad', 'ixlos', 'falaq', 'nas']);
+    const withPick = defaultZamChoice(session([1, 2, 3, 4]), 'ixlos', { 3: 'ixlos' });
+    expect(withPick[3]).toBe('ixlos');
+    expect(new Set(Object.values(withPick)).size).toBe(4);
   });
 });
