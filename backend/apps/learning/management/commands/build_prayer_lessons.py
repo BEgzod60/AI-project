@@ -26,7 +26,11 @@ from apps.namoz.models import Section
 BASE = 'https://muslim.uz/uz/c/prayer'
 PUBLISHER = 'O‘zbekiston musulmonlari idorasi rasmiy sayti (muslim.uz)'
 CHECKED = 'Manba matni bilan aynan solishtirildi (import)'
-QF_RECITER_ID, QF_RECITER = 7, 'Mishari Rashid al-Afasy'
+TANZIL_RECITER, TANZIL_RECITER_NAME = 'afasy', 'Mishari Rashid al-Afasy'
+TANZIL_NOTE = (
+    "Loyiha egasi qarori: sura audiolari Tanzil Project (tanzil.net) manbasidan, quran.com ishlatilmaydi. "
+    "Tanzil audio fayllari uchun alohida foydalanish shartlari hujjatlashtirilmagan."
+)
 
 # Rasmiy post: «Namoz saboqlari: Tashahhud, salavot, duo (Audio)» — O'MI matbuot xizmati, 25.11.2019
 POST_URL = 'https://muslim.uz/uz/e/post/23574-namoz-saboqlari-tashahhud-salavot-duo-audio'
@@ -315,14 +319,13 @@ class Command(BaseCommand):
         return rec
 
     def _post_audio(self, recs):
-        # Robbana — Qur'on oyati (Baqara, 201): Quran Foundation API orqali shu oyat tilovati.
-        # 2:201 tarjimasi (API, 2026-10-15): «...who says, "Our Lord, give us in this world ... good and in the
-        # Hereafter ... good and protect us from the punishment of the Fire."» — duo shu oyat ichida.
+        # Robbana — Qur'on oyati (Baqara, 201): Tanzil'dan shu oyat tilovati; duo shu oyat ichida.
         AudioSource.objects.update_or_create(
-            recitation=recs['robbana'], provider=AudioSource.Provider.QURAN_FOUNDATION,
+            recitation=recs['robbana'], provider=AudioSource.Provider.TANZIL,
             defaults=dict(
-                qf_recitation_id=QF_RECITER_ID, qf_surah=2, qf_verse=201, reciter=QF_RECITER,
-                source_url='https://quran.com/2/201', license_status=AudioSource.License.API_TERMS,
+                tanzil_reciter=TANZIL_RECITER, qf_surah=2, qf_verse=201, reciter=TANZIL_RECITER_NAME,
+                source_url='https://tanzil.net/#2:201', license_status=AudioSource.License.PROJECT_DECISION,
+                permission_note=TANZIL_NOTE,
                 verification_status=AudioSource.Verification.APPROVED,
                 verified_by='Oyat (Baqara, 201) duo bilan solishtirildi (import)',
                 display_note="Qur\u2019on tilovati: Baqara surasi, 201-oyat. Duo shu oyatning \u00abRobbana\u2026\u00bb qismidir.",
@@ -438,14 +441,14 @@ class Command(BaseCommand):
             ))
             if surah:
                 AudioSource.objects.update_or_create(
-                    recitation=recs[slug], provider=AudioSource.Provider.QURAN_FOUNDATION,
+                    recitation=recs[slug], provider=AudioSource.Provider.TANZIL,
                     defaults=dict(
-                        qf_recitation_id=QF_RECITER_ID, reciter=QF_RECITER,
-                        source_url=f'https://quran.com/{surah}',
-                        license_status=AudioSource.License.API_TERMS,
+                        tanzil_reciter=TANZIL_RECITER, reciter=TANZIL_RECITER_NAME,
+                        source_url=f'https://tanzil.net/#{surah}:1',
+                        license_status=AudioSource.License.PROJECT_DECISION, permission_note=TANZIL_NOTE,
                         verification_status=AudioSource.Verification.APPROVED,
-                        verified_by=f'Sura raqami ({surah}) Quran Foundation API bilan solishtirildi (import)',
-                        notes='Audio Quran Foundation CDN’idan oqim tarzida eshittiriladi; fayl yuklab olinmaydi.',
+                        verified_by=f'Sura raqami ({surah}) Tanzil fayl nomi bilan mos (import)',
+                        notes='Oyatma-oyat tilovat: tanzil.net yoki o‘zimizda siqib saqlangan nusxa (media/quran).',
                     ),
                 )
             if slug in DEAD_MUSLIMUZ_AUDIO:

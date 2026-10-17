@@ -6,9 +6,13 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+import tempfile
 
-from . import quran_audio
+from django.test import TestCase, override_settings
+
+from apps.quran import audio_files
+from apps.quran.models import Surah
+
 from .models import AudioSource, LessonNote, LessonStep, PrayerCategory, Recitation, ReviewStatus
 
 
@@ -70,11 +74,11 @@ class LessonApiTests(TestCase):
                                                transliteration='Qul huvallohu ahad', is_zam_sura=True, **pub)
         self.draft = Recitation.objects.create(slug='qoralama', name='Qoralama', kind='dua', transliteration='x')
         self.audio = AudioSource.objects.create(
-            recitation=self.fotiha, provider='quran_foundation', qf_recitation_id=7, source_url='https://quran.com/1',
-            license_status='api_terms', verification_status='approved', verified_by='T')
+            recitation=self.fotiha, provider='tanzil', tanzil_reciter='afasy', source_url='https://tanzil.net/#1:1',
+            license_status='project_decision', verification_status='approved', verified_by='T')
         self.pending_audio = AudioSource.objects.create(
-            recitation=self.ixlos, provider='quran_foundation', qf_recitation_id=7, source_url='https://quran.com/112',
-            license_status='api_terms', verification_status='pending')
+            recitation=self.ixlos, provider='tanzil', tanzil_reciter='afasy', source_url='https://tanzil.net/#112:1',
+            license_status='project_decision', verification_status='pending')
         step = LessonStep.objects.create(category=self.bomdod, order=1, title='Qiroat', text='Fotiha o‘qiladi.',
                                          text_female='Ayollar ...', zam_sura_choice=True, **pub)
         step.recitations.set([self.fotiha, self.draft])
@@ -94,7 +98,8 @@ class LessonApiTests(TestCase):
 
     def test_audio_only_when_approved(self):
         d = self.lesson()
-        self.assertEqual(d['recitations']['fotiha']['audio']['modes'], ['full', 'verses'])
+        self.assertEqual(d['recitations']['fotiha']['audio']['modes'], ['verses'])
+        self.assertEqual(d['recitations']['fotiha']['audio']['provider'], 'tanzil')
         self.assertIsNone(d['recitations']['ixlos']['audio'])
         r = self.client.get(f'/api/namoz-organish/audio/{self.pending_audio.pk}/')
         self.assertEqual(r.status_code, 404)
@@ -105,54 +110,36 @@ class LessonApiTests(TestCase):
         d = self.lesson()
         self.assertEqual((d['steps'], d['recitations']), ([], {}))
 
-    @mock.patch('apps.learning.quran_audio.requests.get')
-    def test_audio_full_and_verses(self, get):
-        def fake(url, **kw):
-            resp = mock.Mock(raise_for_status=lambda: None)
-            if 'chapter_recitations' in url:
-                resp.json.return_value = {'audio_file': {'audio_url': 'https://download.quranicaudio.com/qdc/x/1.mp3'}}
-            else:
-                resp.json.return_value = {'audio_files': [{'verse_key': '1:2', 'url': 'Alafasy/mp3/001002.mp3'},
-                                                          {'verse_key': '1:1', 'url': '//verses.quran.com/Alafasy/mp3/001001.mp3'}],
-                                          'pagination': {'next_page': None}}
-            return resp
-        get.side_effect = fake
-        full = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/?mode=full').json()
-        self.assertEqual(full['url'], 'https://download.quranicaudio.com/qdc/x/1.mp3')
-        verses = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/?mode=verses').json()['verses']
-        self.assertEqual([v['verse'] for v in verses], [1, 2])
-        self.assertTrue(all(v['url'].startswith('https://verses.quran.com/') for v in verses))
+    def _surah(self, number=1, verses=7):
+        Surah.objects.create(number=number, name_uz='Fotiha', name_simple='Al-Fatiha', name_arabic='الفاتحة',
+                             verses_count=verses, revelation='makkiy')
 
-    @mock.patch('apps.learning.quran_audio.requests.get')
-    def test_audio_upstream_error_and_unexpected_host(self, get):
-        import requests as rq
-        get.side_effect = rq.ConnectionError('down')
+    def test_tanzil_verses_remote_when_not_compressed(self):
+        self._surah()
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=Path(tmp)):
+            data = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/?mode=full').json()
+        self.assertEqual(data['mode'], 'verses')  # Tanzil'da butun sura fayli yo'q
+        self.assertEqual([v['verse'] for v in data['verses']], list(range(1, 8)))
+        self.assertEqual(data['verses'][0]['url'], 'https://tanzil.net/res/audio/afasy/001001.mp3')
+        self.assertFalse(any('quran.com' in v['url'] for v in data['verses']))
+
+    def test_tanzil_verses_local_when_compressed(self):
+        self._surah()
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=Path(tmp)):
+            audio_files.reciter_dir('afasy').mkdir(parents=True)
+            (audio_files.reciter_dir('afasy') / audio_files.COMPLETE_MARKER).write_text('6236')
+            data = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/').json()
+        self.assertEqual(data['verses'][6]['url'], '/media/quran/afasy/001007.webm')
+
+    def test_tanzil_without_imported_surahs_is_unavailable(self):
         r = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/')
         self.assertEqual((r.status_code, r.json()['error']['message']), (502, 'Audio hozircha mavjud emas'))
-        cache.clear()
-        get.side_effect = None
-        get.return_value = mock.Mock(raise_for_status=lambda: None,
-                                     json=lambda: {'audio_file': {'audio_url': 'https://evil.example/a.mp3'}})
-        self.assertEqual(self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/').status_code, 502)
-
-    @mock.patch.dict('os.environ', {'QF_CLIENT_ID': 'cid', 'QF_CLIENT_SECRET': 'sec'})
-    @mock.patch('apps.learning.quran_audio.requests.post')
-    @mock.patch('apps.learning.quran_audio.requests.get')
-    def test_credentials_use_oauth_and_stay_server_side(self, get, post):
-        post.return_value = mock.Mock(raise_for_status=lambda: None, json=lambda: {'access_token': 'tok', 'expires_in': 3600})
-        get.return_value = mock.Mock(raise_for_status=lambda: None,
-                                     json=lambda: {'audio_file': {'audio_url': 'https://download.quranicaudio.com/q/1.mp3'}})
-        body = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/').content.decode()
-        self.assertTrue(get.call_args.args[0].startswith(quran_audio.QF_BASE))
-        self.assertEqual(get.call_args.kwargs['headers'], {'x-auth-token': 'tok', 'x-client-id': 'cid'})
-        self.assertNotIn('sec', body)
-        self.assertNotIn('tok', body)
 
     def test_no_arabic_script_in_payload(self):
         self.assertIsNone(ARABIC.search(json.dumps(self.lesson(), ensure_ascii=False)))
 
     def test_audio_validation_and_admin_approve(self):
-        bad = AudioSource(recitation=self.draft, provider='quran_foundation', qf_recitation_id=7, source_url='https://x.uz')
+        bad = AudioSource(recitation=self.draft, provider='tanzil', tanzil_reciter='afasy', source_url='https://x.uz')
         with self.assertRaises(ValidationError):
             bad.full_clean()  # sura raqami yo'q
         self.client.force_login(User.objects.create_superuser('admin2', 'b@example.com', 'x'))
@@ -226,20 +213,17 @@ class AyahAudioTests(TestCase):
                                         review_status=ReviewStatus.PUBLISHED, reviewed_by='T',
                                         source_url='https://muslim.uz/uz/e/post/23574')
         self.audio = AudioSource.objects.create(
-            recitation=rec, provider='quran_foundation', qf_recitation_id=7, qf_surah=2, qf_verse=201,
-            source_url='https://quran.com/2/201', license_status='api_terms', verification_status='approved',
+            recitation=rec, provider='tanzil', tanzil_reciter='afasy', qf_surah=2, qf_verse=201,
+            source_url='https://tanzil.net/#2:201', license_status='project_decision', verification_status='approved',
             verified_by='T', display_note='Baqara surasi, 201-oyat')
 
     def test_valid_without_recitation_surah(self):
         self.audio.full_clean()  # sura raqami audio yozuvida ko'rsatilgan
 
-    @mock.patch('apps.learning.quran_audio.requests.get')
-    def test_single_ayah_url(self, get):
-        get.return_value = mock.Mock(raise_for_status=lambda: None,
-                                     json=lambda: {'audio_files': [{'verse_key': '2:201', 'url': 'Alafasy/mp3/002201.mp3'}]})
-        data = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/?mode=verses').json()
-        self.assertEqual(data, {'mode': 'full', 'url': 'https://verses.quran.com/Alafasy/mp3/002201.mp3'})
-        self.assertIn('/by_ayah/2:201', get.call_args.args[0])
+    def test_single_ayah_url(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=Path(tmp)):
+            data = self.client.get(f'/api/namoz-organish/audio/{self.audio.pk}/?mode=verses').json()
+        self.assertEqual(data, {'mode': 'full', 'url': 'https://tanzil.net/res/audio/afasy/002201.mp3'})
 
 
 class AudioReferenceTests(TestCase):

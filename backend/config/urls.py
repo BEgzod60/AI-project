@@ -1,4 +1,6 @@
 """Iymon URL configuration."""
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
@@ -14,4 +16,8 @@ urlpatterns = [
     path('api/namoz-organish/', include('apps.learning.urls')),
     path('api/ai/', include('apps.ai.urls')),
     path('api/qibla/', include('apps.mosques.urls')),
+    path('api/quran/', include('apps.quran.urls')),
 ]
+
+# Ishlab chiqishda media (siqilgan Qur'on audiolari va h.k.) Django orqali beriladi.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

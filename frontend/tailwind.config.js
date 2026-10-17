@@ -37,6 +37,8 @@ export default {
       fontFamily: {
         sans: ['Nunito', 'Segoe UI', 'sans-serif'],
         display: ['Poppins', 'Nunito', 'sans-serif'],
+        /** Qur'on matni (shrift Suralar sahifasida yuklanadi) */
+        quran: ['"Amiri Quran"', 'Amiri', '"Scheherazade New"', 'serif'],
         /** Faqat 'Iymon' brend yozuvi uchun */
         brand: ['"Cormorant Garamond"', 'Georgia', 'serif'],
       },

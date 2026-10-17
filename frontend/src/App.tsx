@@ -14,7 +14,7 @@ const IymonPage = lazy(() => import('./pages/Iymon/IymonPage').then((m) => ({ de
 const IymonTopicPage = lazy(() => import('./pages/Iymon/IymonTopicPage').then((m) => ({ default: m.IymonTopicPage })));
 const SearchPage = lazy(() => import('./pages/Search/SearchPage').then((m) => ({ default: m.SearchPage })));
 const LearningPage = lazy(() => import('./pages/Learning/LearningPage').then((m) => ({ default: m.LearningPage })));
-const AiAssistantPage = lazy(() => import('./pages/AiAssistant/AiAssistantPage').then((m) => ({ default: m.AiAssistantPage })));
+const SuralarPage = lazy(() => import('./pages/Suralar/SuralarPage').then((m) => ({ default: m.SuralarPage })));
 const QiblaPage = lazy(() => import('./pages/Qibla/QiblaPage').then((m) => ({ default: m.QiblaPage })));
 const LessonPage = lazy(() => import('./pages/Learning/LessonPage').then((m) => ({ default: m.LessonPage })));
 
@@ -33,10 +33,10 @@ export default function App() {
               <Route path="iymon" element={<IymonPage />} />
               <Route path="iymon/:slug" element={<IymonTopicPage />} />
               <Route path="qidiruv" element={<SearchPage />} />
-              <Route path="ai-yordamchi" element={<AiAssistantPage />} />
               <Route path="namoz-organish" element={<LearningPage />} />
               <Route path="namoz-organish/:slug" element={<LessonPage />} />
               <Route path="qibla" element={<QiblaPage />} />
+              <Route path="suralar" element={<SuralarPage />} />
               {/* Boshqa sahifalar (Suralar, ...) keyingi bosqichlarda qo'shiladi */}
               <Route path="*" element={<NotFoundPage />} />
             </Route>

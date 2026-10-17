@@ -23,7 +23,7 @@ export interface PrayerCategory {
 /** Backend: apps/learning/serializers.py — lesson_payload */
 export interface AudioDescriptor {
   id: number;
-  provider: 'quran_foundation' | 'muslim_uz' | 'other';
+  provider: 'tanzil' | 'muslim_uz' | 'other';
   reciter: string;
   source_url: string;
   license: string;
@@ -87,6 +87,8 @@ export interface Lesson {
   notes: Record<LessonTab, LessonNote[]>;
   recitations: Record<string, Recitation>;
   zam_suras: string[];
+  /** «Birga o'qish» rejimi uchun ketma-ketlik tuzilishi mumkinmi */
+  birga_supported?: boolean;
 }
 
 export type AudioPayload =

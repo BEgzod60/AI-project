@@ -24,7 +24,6 @@ const navItems: NavItem[] = [
   { to: '/namoz-vaqtlari', icon: <ClockIcon />, label: 'Namoz vaqtlari' },
   { to: '/iymon', icon: <BookIcon />, label: 'Iymon' },
   { to: '/namoz-organish', icon: <GraduateIcon />, label: "Namoz o'rganish" },
-  { to: '/ai-yordamchi', icon: <InfoIcon />, label: 'AI yordamchisi' },
   { to: '/qibla', icon: <CompassIcon />, label: 'Qibla' },
   { to: '/suralar', icon: <SurahIcon />, label: 'Suralar va zam suralar' },
   { to: '/loyiha-haqida', icon: <InfoIcon />, label: 'Loyiha haqida' },

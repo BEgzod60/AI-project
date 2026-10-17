@@ -7,6 +7,8 @@ Chop etish uchun manba havolasi, manbadagi aynan jumla va tasdiqlagan shaxs majb
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.quran.sources import AYAH_AUDIO_RECITERS
+
 
 class PrayerCategory(models.Model):
     class Icon(models.TextChoices):
@@ -159,13 +161,14 @@ class AudioSource(models.Model):
     """Sura/duo audiosi. Saytda faqat tasdiqlangan va foydalanishga ruxsati bor audio chiqadi."""
 
     class Provider(models.TextChoices):
-        QURAN_FOUNDATION = 'quran_foundation', 'Quran Foundation (quran.com) API'
+        TANZIL = 'tanzil', 'Tanzil Project (tanzil.net)'
         MUSLIM_UZ = 'muslim_uz', 'muslim.uz'
         OTHER = 'other', 'Boshqa (to‘g‘ridan-to‘g‘ri havola)'
 
     class License(models.TextChoices):
         PERMITTED = 'permitted', 'Ruxsat berilgan (hujjat bor)'
         API_TERMS = 'api_terms', 'Rasmiy API shartlari asosida (oqim, yuklab tarqatilmaydi)'
+        PROJECT_DECISION = 'project_decision', 'Loyiha egasi qarori (manba shartlari hujjatlashtirilmagan)'
         UNKNOWN = 'unknown', 'Aniqlanmagan'
         NOT_PERMITTED = 'not_permitted', 'Ruxsat yo‘q'
 
@@ -174,16 +177,16 @@ class AudioSource(models.Model):
         APPROVED = 'approved', 'Tasdiqlangan'
         REJECTED = 'rejected', 'Rad etilgan'
 
-    PLAYABLE_LICENSES = (License.PERMITTED, License.API_TERMS)
+    PLAYABLE_LICENSES = (License.PERMITTED, License.API_TERMS, License.PROJECT_DECISION)
 
     recitation = models.ForeignKey(Recitation, on_delete=models.CASCADE, related_name='audio_sources', verbose_name='Sura / duo')
     provider = models.CharField('Manba turi', max_length=20, choices=Provider.choices)
     audio_url = models.URLField(
         'Audio havolasi', blank=True,
-        help_text="Quran Foundation uchun bo'sh qoldiring — havola API orqali olinadi.",
+        help_text="Tanzil uchun bo'sh qoldiring — havola sura/oyat raqamidan tuziladi.",
     )
-    qf_recitation_id = models.PositiveIntegerField(
-        'Quran Foundation qori ID', null=True, blank=True, help_text='Masalan 7 — Mishari Rashid al-Afasy'
+    tanzil_reciter = models.CharField(
+        'Tanzil qorisi', max_length=20, choices=AYAH_AUDIO_RECITERS, default='afasy', blank=True,
     )
     qf_surah = models.PositiveSmallIntegerField(
         'Sura raqami (audio uchun)', null=True, blank=True,
@@ -231,11 +234,11 @@ class AudioSource(models.Model):
         )
 
     def clean(self):
-        if self.provider == self.Provider.QURAN_FOUNDATION:
+        if self.provider == self.Provider.TANZIL:
             if not self.surah:
-                raise ValidationError('Quran Foundation audiosi uchun sura raqami kerak (yozuvda yoki «Sura raqami» maydonida).')
-            if not self.qf_recitation_id:
-                raise ValidationError({'qf_recitation_id': 'Qori ID ko‘rsatilishi kerak.'})
+                raise ValidationError('Tanzil audiosi uchun sura raqami kerak (yozuvda yoki «Sura raqami» maydonida).')
+            if not self.tanzil_reciter:
+                raise ValidationError({'tanzil_reciter': 'Qori tanlanishi kerak.'})
         elif not self.audio_url:
             raise ValidationError({'audio_url': 'Audio havolasi kerak.'})
         if self.verification_status == self.Verification.APPROVED and not self.verified_by:

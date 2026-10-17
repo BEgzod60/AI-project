@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { getLesson } from '../../services/learningService';
 import type { Lesson, LessonStep, LessonTab, Recitation, StepImage } from '../../types/learning';
@@ -9,6 +9,11 @@ import { Breadcrumb } from '../../components/namoz/Breadcrumb';
 import { AudioPlayer } from '../../components/learning/AudioPlayer';
 import { ZamSuraPicker } from '../../components/learning/ZamSuraPicker';
 import { CategoryIcon, RakatChips } from '../../components/learning/LessonCard';
+import { BirgaModeCards, type BirgaMode } from '../../components/birga/BirgaModeCards';
+
+// «Birga o'qish / takrorlash» rejimlari faqat ochilganda yuklanadi
+const BirgaModeView = lazy(() => import('../../components/birga/BirgaModeView'));
+const MODES: BirgaMode[] = ['birga-oqish', 'birga-takrorlash'];
 
 type Tab = 'tartib' | LessonTab;
 type Gender = 'erkak' | 'ayol';
@@ -105,6 +110,11 @@ function LessonView({ slug, lesson }: { slug: string; lesson: Lesson }) {
   }, [slug, done, current, gender, zam]);
 
   const [finished, setFinished] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const modeParam = params.get('rejim') as BirgaMode | null;
+  const mode = lesson.birga_supported && modeParam && MODES.includes(modeParam) ? modeParam : null;
+  const openMode = (m: BirgaMode) => setParams({ rejim: m });
+  const closeMode = () => setParams({});
   const step = steps[current];
   const percent = steps.length ? Math.round((done.length / steps.length) * 100) : 0;
 
@@ -174,6 +184,16 @@ function LessonView({ slug, lesson }: { slug: string; lesson: Lesson }) {
         )}
       </section>
 
+      {verified && lesson.birga_supported && !mode && <BirgaModeCards onOpen={openMode} />}
+
+      {mode ? (
+        <div className="mt-6">
+          <Suspense fallback={<Loading label="Rejim yuklanmoqda..." />}>
+            <BirgaModeView slug={slug} mode={mode} lesson={lesson} gender={gender} zam={zam} onExit={closeMode} />
+          </Suspense>
+        </div>
+      ) : (
+      <>
       {/* ===== Tablar ===== */}
       <div role="tablist" aria-label="Dars bo‘limlari" className="mt-6 flex gap-2 overflow-x-auto pb-1">
         {TABS.map((t) => (
@@ -267,6 +287,8 @@ function LessonView({ slug, lesson }: { slug: string; lesson: Lesson }) {
           <NotesTab notes={lesson.notes[tab]} />
         )}
       </div>
+      </>
+      )}
 
       <div className="mt-8 flex justify-center">
         <Link

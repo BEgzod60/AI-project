@@ -3,7 +3,7 @@ from rest_framework import generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from . import quran_audio
+from . import birga, tanzil_audio
 from .models import AudioSource, PrayerCategory
 from .serializers import PrayerCategorySerializer, lesson_payload
 
@@ -32,20 +32,32 @@ def lesson_view(request, slug):
 
 
 @api_view(['GET'])
+def birga_view(request, slug):
+    """GET /api/namoz-organish/<slug>/birga/?qism=<n> — «Birga o'qish» ketma-ketligi, matnlar va sozlamalar.
+
+    qism — rakat_breakdown indeksi (masalan Peshin: 0 = 4 sunnat, 1 = 4 farz, 2 = 2 sunnat).
+    """
+    category = get_object_or_404(PrayerCategory, slug=slug, is_visible=True)
+    try:
+        part = int(request.query_params['qism']) if 'qism' in request.query_params else None
+    except ValueError:
+        part = None
+    return Response(birga.session_payload(category, part))
+
+
+@api_view(['GET'])
 def audio_view(request, pk):
     """GET /api/namoz-organish/audio/<id>/?mode=full|verses — faqat tasdiqlangan audio havolasi."""
     audio = get_object_or_404(AudioSource.objects.select_related('recitation'), pk=pk)
     if not audio.is_playable or not audio.recitation.is_published:
         return Response({'error': {'code': 'not_available', 'message': 'Audio hozircha mavjud emas'}}, status=404)
-    mode = request.query_params.get('mode', 'full')
     try:
-        if audio.provider == AudioSource.Provider.QURAN_FOUNDATION:
-            surah = audio.surah
+        if audio.provider == AudioSource.Provider.TANZIL:
+            # Tanzil'da butun sura fayli yo'q — sura oyatma-oyat ketma-ket eshittiriladi
+            reciter, surah = audio.tanzil_reciter, audio.surah
             if audio.qf_verse:
-                return Response({'mode': 'full', 'url': quran_audio.ayah_url(audio.qf_recitation_id, surah, audio.qf_verse)})
-            if mode == 'verses':
-                return Response({'mode': 'verses', 'verses': quran_audio.verse_urls(audio.qf_recitation_id, surah)})
-            return Response({'mode': 'full', 'url': quran_audio.full_surah_url(audio.qf_recitation_id, surah)})
+                return Response({'mode': 'full', 'url': tanzil_audio.ayah_url(reciter, surah, audio.qf_verse)})
+            return Response({'mode': 'verses', 'verses': tanzil_audio.verse_urls(reciter, surah)})
         return Response({'mode': 'full', 'url': audio.audio_url})
-    except quran_audio.QuranAudioError:
+    except tanzil_audio.TanzilAudioError:
         return Response({'error': {'code': 'upstream_error', 'message': 'Audio hozircha mavjud emas'}}, status=502)

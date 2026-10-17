@@ -26,7 +26,8 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [mode, setMode] = useState<Mode>('full');
+  // Tanzil'da faqat oyatma-oyat bor — birinchi mavjud rejim tanlanadi
+  const [mode, setMode] = useState<Mode>(audio?.modes[0] ?? 'full');
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [verses, setVerses] = useState<{ verse: number; url: string }[] | null>(null);
   const [verseIdx, setVerseIdx] = useState(0);
@@ -39,7 +40,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
 
   // Boshqa sura/duo tanlanganda pleyer boshlang'ich holatga qaytadi
   useEffect(() => {
-    setMode('full');
+    setMode(audio?.modes[0] ?? 'full');
     setFullUrl(null);
     setVerses(null);
     setVerseIdx(0);
@@ -150,7 +151,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
 
   return (
     <div className="rounded-xl bg-neutral-50 p-3 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
-      {audio.modes.includes('verses') && (
+      {audio.modes.includes('verses') && audio.modes.includes('full') && (
         <div className="mb-2 flex gap-1 rounded-lg bg-white p-0.5 text-[11px] font-semibold ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10" role="group" aria-label="Tinglash usuli">
           {(['full', 'verses'] as Mode[]).map((m) => (
             <button
@@ -275,10 +276,10 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
       {audio.display_note && (
         <p className="mt-2 text-[11px] leading-snug text-neutral-600 dark:text-neutral-400">{audio.display_note}</p>
       )}
-      <p className="mt-1 truncate text-[10px] text-neutral-500">
+      <p className="mt-1 break-words text-[10px] leading-snug text-neutral-500">
         {audio.reciter && <>Qori: {audio.reciter} · </>}
         <a href={audio.source_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-600">
-          {audio.provider === 'quran_foundation' ? 'Quran Foundation' : 'Manba'}
+          {audio.provider === 'tanzil' ? 'Manba: Tanzil Project (tanzil.net)' : audio.provider === 'muslim_uz' ? 'Manba: muslim.uz' : 'Manba'}
         </a>
       </p>
 

@@ -35,7 +35,7 @@ REVIEW_HELP = (
 class AudioSourceInline(admin.StackedInline):
     model = AudioSource
     extra = 0
-    fields = ['provider', 'audio_url', 'qf_recitation_id', 'qf_surah', 'qf_verse', 'reciter', 'display_note', 'source_url',
+    fields = ['provider', 'audio_url', 'tanzil_reciter', 'qf_surah', 'qf_verse', 'reciter', 'display_note', 'source_url',
               'license_status', 'permission_note', 'verification_status', 'verified_by',
               'last_checked_at', 'last_http_status', 'notes']
     readonly_fields = ['last_checked_at', 'last_http_status']
@@ -69,13 +69,13 @@ class AudioSourceAdmin(admin.ModelAdmin):
     readonly_fields = ['last_checked_at', 'last_http_status']
     actions = ['check_availability', 'approve', 'reject']
     fieldsets = [
-        (None, {'fields': ['recitation', 'provider', 'audio_url', 'qf_recitation_id', 'qf_surah', 'qf_verse',
+        (None, {'fields': ['recitation', 'provider', 'audio_url', 'tanzil_reciter', 'qf_surah', 'qf_verse',
                            'reciter', 'display_note', 'source_url']}),
         ('Ruxsat', {'fields': ['license_status', 'permission_note']}),
         ('Tekshiruv', {
             'fields': ['verification_status', 'verified_by', 'last_checked_at', 'last_http_status', 'notes'],
             'description': "Avval «Mavjudligini tekshirish» amalini bajaring: faqat ochiladigan va foydalanish "
-                           "ruxsati bor audio tasdiqlanadi. Audio yuklab olinmaydi — manbadan oqim tarzida eshittiriladi.",
+                           "ruxsati bor audio tasdiqlanadi.",
         }),
     ]
 

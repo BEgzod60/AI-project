@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from . import birga
 from .models import AudioSource, LessonNote, LessonStep, PrayerCategory, Recitation
 
 
@@ -41,8 +42,8 @@ class AudioDescriptorSerializer(serializers.ModelSerializer):
         fields = ['id', 'provider', 'reciter', 'source_url', 'license', 'modes', 'display_note']
 
     def get_modes(self, obj):
-        if obj.provider == AudioSource.Provider.QURAN_FOUNDATION and not obj.qf_verse:
-            return ['full', 'verses']
+        if obj.provider == AudioSource.Provider.TANZIL and not obj.qf_verse:
+            return ['verses']
         return ['full']
 
 
@@ -98,12 +99,14 @@ def lesson_payload(category):
     data = {
         'category': PrayerCategorySerializer(category).data,
         'steps': [], 'notes': {tab: [] for tab in LessonNote.Tab.values}, 'recitations': {}, 'zam_suras': [],
+        'birga_supported': False,
     }
     if not category.is_published:
         return data
 
     steps = _published(category.steps.prefetch_related('recitations'))
     data['steps'] = LessonStepSerializer(steps, many=True).data
+    data['birga_supported'] = bool(birga.build_sequence(steps)[0])
     for note in _published(category.notes.all()):
         data['notes'][note.tab].append(LessonNoteSerializer(note).data)
 

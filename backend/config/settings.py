@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'apps.learning',
     'apps.ai',
     'apps.mosques',
+    'apps.quran',
 ]
 
 MIDDLEWARE = [

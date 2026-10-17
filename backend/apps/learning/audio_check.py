@@ -2,7 +2,7 @@
 import requests
 from django.utils import timezone
 
-from . import quran_audio
+from . import tanzil_audio
 from .models import AudioSource
 
 TIMEOUT = 15
@@ -11,10 +11,9 @@ OK_STATUSES = (200, 206)
 
 
 def resolve_url(audio: AudioSource) -> str:
-    if audio.provider == AudioSource.Provider.QURAN_FOUNDATION:
-        if audio.qf_verse:
-            return quran_audio.ayah_url(audio.qf_recitation_id, audio.surah, audio.qf_verse)
-        return quran_audio.full_surah_url(audio.qf_recitation_id, audio.surah)
+    if audio.provider == AudioSource.Provider.TANZIL:
+        # Tekshiruv manbaning o'zida (tanzil.net) — birinchi yoki ko'rsatilgan oyat
+        return tanzil_audio.ayah_url(audio.tanzil_reciter, audio.surah, audio.qf_verse or 1, remote=True)
     return audio.audio_url
 
 
@@ -33,7 +32,7 @@ def http_status(url: str) -> int:
 def check(audio: AudioSource) -> int:
     try:
         status = http_status(resolve_url(audio))
-    except quran_audio.QuranAudioError:
+    except tanzil_audio.TanzilAudioError:
         status = 0
     audio.last_http_status = status
     audio.last_checked_at = timezone.now()
