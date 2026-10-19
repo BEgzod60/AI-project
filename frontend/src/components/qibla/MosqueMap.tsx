@@ -3,6 +3,7 @@ import type { Mosque } from '../../types/qibla';
 import { formatDistance, type LatLon } from './geo';
 import { L, createMap, mosqueIcon, pendingIcon, userIcon } from './leaflet';
 import { directionsUrl, mosqueTitle } from './mosqueUtils';
+import { getLang } from '../../i18n';
 
 interface Props {
   center: LatLon;
@@ -88,7 +89,7 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
       interactive: false,
     }).addTo(layer);
     // Ko'k belgi — hozirgi joy (qimirlamaydi). Yangi joy oltin belgi bilan tanlanadi va «Tanlandi» bilan tasdiqlanadi
-    L.marker([center.lat, center.lon], { icon: userIcon, title: 'Hozirgi joy', keyboard: false, interactive: false }).addTo(layer);
+    L.marker([center.lat, center.lon], { icon: userIcon, title: getLang() === 'ru' ? 'Текущее место' : 'Hozirgi joy', keyboard: false, interactive: false }).addTo(layer);
 
     for (const m of mosques) {
       const title = mosqueTitle(m);
@@ -100,7 +101,7 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
             `<strong class="block text-sm">${escapeHtml(title)}</strong>` +
             (m.address ? `<span class="block text-xs text-neutral-600">${escapeHtml(m.address)}</span>` : '') +
             `<span class="mt-1 block text-xs font-semibold">${formatDistance(m.distance_m)}</span>` +
-            `<a class="mt-1.5 inline-block font-semibold text-primary-700" href="${directionsUrl(m)}" target="_blank" rel="noopener noreferrer">Yo‘nalish olish ↗</a>`,
+            `<a class="mt-1.5 inline-block font-semibold text-primary-700" href="${directionsUrl(m)}" target="_blank" rel="noopener noreferrer">${getLang() === 'ru' ? 'Маршрут' : 'Yo‘nalish olish'} ↗</a>`,
         )
         .on('click', (e: L.LeafletMouseEvent) => {
           // Belgilash rejimida masjid belgisiga bosish ham joy belgilaydi
@@ -166,7 +167,7 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
       return;
     }
     if (!pendingRef.current) {
-      pendingRef.current = L.marker([pending.lat, pending.lon], { icon: pendingIcon, draggable: true, zIndexOffset: 1000, title: 'Belgilangan joy' })
+      pendingRef.current = L.marker([pending.lat, pending.lon], { icon: pendingIcon, draggable: true, zIndexOffset: 1000, title: getLang() === 'ru' ? 'Отмеченное место' : 'Belgilangan joy' })
         .on('dragend', (e) => {
           const p = (e.target as L.Marker).getLatLng();
           onPickRef.current({ lat: p.lat, lon: p.lng });
@@ -182,5 +183,5 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
     elRef.current?.classList.toggle('cursor-crosshair', picking);
   }, [picking]);
 
-  return <div ref={elRef} className="h-full min-h-[20rem] w-full" role="region" aria-label="Yaqin masjidlar xaritasi" />;
+  return <div ref={elRef} className="h-full min-h-[20rem] w-full" role="region" aria-label={getLang() === 'ru' ? 'Карта ближайших мечетей' : 'Yaqin masjidlar xaritasi'} />;
 }

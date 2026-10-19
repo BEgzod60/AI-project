@@ -51,6 +51,13 @@ export function useTashkentClock(): ClockNow {
   return now;
 }
 
+/** '2026-10-15' + n kun */
+export function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 export const PRAYER_ORDER = ['bomdod', 'quyosh', 'peshin', 'asr', 'shom', 'xufton'] as const;
 export type PrayerKey = (typeof PRAYER_ORDER)[number];
 
@@ -113,6 +120,10 @@ const HIJRI_MONTHS = [
   'Muharram', 'Safar', 'Rabiul-avval', 'Rabiul-oxir', 'Jumadul-avval', 'Jumadul-oxir',
   'Rajab', 'Sha’bon', 'Ramazon', 'Shavvol', 'Zulqa’da', 'Zulhijja',
 ];
+const HIJRI_MONTHS_RU = [
+  'Мухаррам', 'Сафар', 'Раби аль-авваль', 'Раби ас-сани', 'Джумада аль-уля', 'Джумада ас-сания',
+  'Раджаб', 'Шаабан', 'Рамадан', 'Шавваль', 'Зуль-када', 'Зуль-хиджа',
+];
 const hijriFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
   timeZone: TIMEZONE,
   day: 'numeric',
@@ -120,10 +131,10 @@ const hijriFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
   year: 'numeric',
 });
 
-export function hijriDate(date: Date): string | null {
+export function hijriDate(date: Date, lang: 'uz' | 'ru' = 'uz'): string | null {
   try {
     const p = Object.fromEntries(hijriFormatter.formatToParts(date).map((x) => [x.type, x.value]));
-    const month = HIJRI_MONTHS[Number(p.month) - 1];
+    const month = (lang === 'ru' ? HIJRI_MONTHS_RU : HIJRI_MONTHS)[Number(p.month) - 1];
     return month ? `${Number(p.day)} ${month} ${Number(p.year)}` : null;
   } catch {
     return null;
@@ -149,6 +160,17 @@ export const REGION_COORDS: Record<string, { lat: number; lon: number; city: str
   Surxandaryo: { lat: 37.2242, lon: 67.2783, city: 'Termiz' },
   Xiva: { lat: 41.3783, lon: 60.3639, city: 'Xiva' },
 };
+
+const CITIES_RU: Record<string, string> = {
+  Toshkent: 'Ташкент', Andijon: 'Андижан', Buxoro: 'Бухара', "Farg'ona": 'Фергана', Jizzax: 'Джизак', Namangan: 'Наманган',
+  Navoiy: 'Навои', Qarshi: 'Карши', Nukus: 'Нукус', Samarqand: 'Самарканд', Guliston: 'Гулистан', Termiz: 'Термез', Xiva: 'Хива',
+};
+
+/** Hudud markazi shahri tanlangan tilda */
+export function cityLabel(region: string, lang: 'uz' | 'ru'): string {
+  const city = REGION_COORDS[region]?.city ?? region;
+  return lang === 'ru' ? CITIES_RU[city] ?? city : city;
+}
 
 /** Ka'baga yo'nalish: shimoldan soat mili bo'yicha gradus (katta doira formulasi) */
 export function qiblaBearing(region: string): number | null {

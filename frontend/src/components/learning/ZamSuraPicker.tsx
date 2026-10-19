@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Recitation } from '../../types/learning';
+import { useT } from '../../i18n';
 
 interface Props {
   options: Recitation[];
@@ -17,6 +18,7 @@ function shortName(name: string): string {
  * tizim <select> oynasidek ekrandan tashqariga chiqib ketmaydi.
  */
 export function ZamSuraPicker({ options, value, onChange }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -51,7 +53,7 @@ export function ZamSuraPicker({ options, value, onChange }: Props) {
 
   return (
     <div ref={rootRef}>
-      <p className="mb-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-300">Zam sura (Fotihadan keyin)</p>
+      <p className="mb-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-300">{t('Zam sura (Fotihadan keyin)', 'Дополнительная сура (после Фатихи)')}</p>
       <button
         ref={buttonRef}
         type="button"
@@ -68,8 +70,8 @@ export function ZamSuraPicker({ options, value, onChange }: Props) {
           </svg>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[11px] text-neutral-500 dark:text-neutral-400">Tanlangan sura</span>
-          <span className="block truncate font-semibold text-neutral-900 dark:text-white">{selected?.name ?? 'Tanlang'}</span>
+          <span className="block text-[11px] text-neutral-500 dark:text-neutral-400">{t('Tanlangan sura', 'Выбранная сура')}</span>
+          <span className="block truncate font-semibold text-neutral-900 dark:text-white">{selected?.name ?? t('Tanlang', 'Выберите')}</span>
         </span>
         <svg
           viewBox="0 0 24 24"
@@ -87,7 +89,7 @@ export function ZamSuraPicker({ options, value, onChange }: Props) {
         <div
           id={listId}
           role="radiogroup"
-          aria-label="Zam sura"
+          aria-label={t('Zam sura', 'Дополнительная сура')}
           className="mt-2 grid grid-cols-2 gap-1.5 rounded-2xl bg-primary-900 p-2 shadow-lg ring-1 ring-white/10 motion-safe:animate-fade-in"
         >
           {options.map((o) => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { REGIONS } from '../../utils/constants';
-import { REGION_COORDS } from '../prayerTimes/clock';
+import { REGIONS, regionLabel } from '../../utils/constants';
+import { REGION_COORDS, cityLabel } from '../prayerTimes/clock';
+import { useI18n } from '../../i18n';
 
 interface Props {
   /** Tanlangan hudud (GPS ishlatilgan bo'lsa — null) */
@@ -23,6 +24,7 @@ function PinIcon({ className }: { className: string }) {
  * ekrandan tashqariga chiqmaydi. Escape bilan yopiladi.
  */
 export function CityPicker({ value, onChange, onClose }: Props) {
+  const { t, lang } = useI18n();
   const firstRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -34,8 +36,8 @@ export function CityPicker({ value, onChange, onClose }: Props) {
 
   return (
     <div className="rounded-2xl bg-primary-900 p-3 shadow-lg ring-1 ring-white/10 motion-safe:animate-fade-in">
-      <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-white/55">Shaharni tanlang</p>
-      <div role="radiogroup" aria-label="Shahar" className="grid grid-cols-2 gap-1.5">
+      <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-white/55">{t('Shaharni tanlang', 'Выберите город')}</p>
+      <div role="radiogroup" aria-label={t('Shahar', 'Город')} className="grid grid-cols-2 gap-1.5">
         {REGIONS.map((region, i) => {
           const c = REGION_COORDS[region];
           if (!c) return null;
@@ -68,9 +70,9 @@ export function CityPicker({ value, onChange, onClose }: Props) {
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-tight">{c.city}</span>
+                <span className="block text-sm font-semibold leading-tight">{cityLabel(region, lang)}</span>
                 {c.city !== region && (
-                  <span className={`block text-[10px] leading-tight min-[400px]:text-[11px] ${active ? 'text-primary-900/70' : 'text-white/50'}`}>{region}</span>
+                  <span className={`block text-[10px] leading-tight min-[400px]:text-[11px] ${active ? 'text-primary-900/70' : 'text-white/50'}`}>{regionLabel(region, lang)}</span>
                 )}
               </span>
             </button>

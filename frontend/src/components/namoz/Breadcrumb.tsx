@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useT } from '../../i18n';
 
 interface Crumb {
   label: string;
@@ -7,8 +8,9 @@ interface Crumb {
 
 /** "Bosh sahifa › Namoz › ..." navigatsiya zanjiri (to'q fon uchun) */
 export function Breadcrumb({ items }: { items: Crumb[] }) {
+  const t = useT();
   return (
-    <nav aria-label="Navigatsiya zanjiri" className="text-sm">
+    <nav aria-label={t('Navigatsiya zanjiri', 'Навигационная цепочка')} className="text-sm">
       <ol className="flex flex-wrap items-center gap-1.5">
         {items.map((c, i) => (
           <li key={c.label} className="flex items-center gap-1.5">

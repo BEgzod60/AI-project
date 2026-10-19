@@ -17,6 +17,86 @@
 }
 
 @layer components {
+  /* ===== Mobil dizayn tizimi =====
+     Desktop (lg, 1024px+) qiymatlari o'zgarmaydi; telefon (320–767) va planshet (768–1023) uchun ixcham o'lchamlar. */
+
+  /* Sahifa konteyneri: telefonda tor chekka, desktopda avvalgidek */
+  .page {
+    @apply mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6;
+  }
+
+  /* Sahifa bo'limlari orasidagi masofa */
+  .page-stack > * + * {
+    @apply mt-3 sm:mt-4 md:mt-6;
+  }
+
+  /* Sahifa boshidagi qorong'i (hero) blok */
+  .hero {
+    @apply relative overflow-hidden rounded-2xl bg-primary-900 text-white md:rounded-3xl;
+  }
+
+  .hero-body {
+    @apply relative px-4 py-5 sm:px-6 sm:py-7 md:px-10 md:py-12;
+  }
+
+  .hero-title {
+    @apply font-display text-[1.75rem] font-extrabold leading-tight sm:text-4xl md:text-5xl;
+  }
+
+  .hero-text {
+    @apply text-sm leading-relaxed text-white/85 sm:text-base md:text-lg;
+  }
+
+  /* Oq karta */
+  .card {
+    @apply rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5 md:rounded-3xl md:p-6 dark:bg-neutral-900 dark:ring-white/10;
+  }
+
+  .section-title {
+    @apply font-display text-lg font-extrabold text-neutral-900 sm:text-xl md:text-2xl dark:text-white;
+  }
+
+  /* Telefonda gorizontal suriladigan qator (5–6+ element); lg'da elementning o'z joylashuvi qoladi */
+  @media (max-width: 1023px) {
+    .snap-row {
+      @apply -mx-3 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-3 pb-1 sm:-mx-4 sm:px-4;
+      scroll-padding-inline: 0.75rem;
+      scrollbar-width: none;
+    }
+
+    .snap-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .snap-row > * {
+      @apply shrink-0 snap-start;
+    }
+  }
+
+  /* Segment tugmalar (tabs) */
+  .seg {
+    @apply flex gap-1 rounded-2xl bg-neutral-100 p-1 dark:bg-neutral-800;
+  }
+
+  .seg-btn {
+    @apply inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-neutral-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-neutral-300;
+  }
+
+  .seg-btn[aria-selected='true'] {
+    @apply bg-primary-700 text-white shadow-sm dark:bg-primary-600;
+  }
+
+  /* Pastki navigatsiya ostida kontent qolib ketmasin */
+  .pb-bottom-nav {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 1024px) {
+    .pb-bottom-nav {
+      padding-bottom: 0;
+    }
+  }
+
   /* Sidebar menyusi: oq matn; hover/fokusda yashil rang va yengil neon nur */
   .nav-neon {
     @apply text-white;
@@ -136,6 +216,17 @@
     .card-neon:hover .card-neon-arrow,
     .card-neon:focus-visible .card-neon-arrow {
       transform: translateX(4px);
+    }
+  }
+
+  /* Bosilganda yengil "botish" (telefon) */
+  @media (prefers-reduced-motion: no-preference) {
+    .tap-press {
+      transition: transform 0.15s ease;
+    }
+
+    .tap-press:active {
+      transform: scale(0.97);
     }
   }
 

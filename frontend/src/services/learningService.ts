@@ -1,4 +1,4 @@
-import { ApiError, apiGet } from './api';
+import { ApiError, apiError, apiGet } from './api';
 import type { AudioPayload, Lesson, PrayerCategory } from '../types/learning';
 
 export function getPrayerCategories(): Promise<PrayerCategory[]> {
@@ -9,7 +9,7 @@ export async function getPrayerCategory(slug: string): Promise<PrayerCategory> {
   try {
     return await apiGet<PrayerCategory>(`/namoz-organish/${encodeURIComponent(slug)}/`);
   } catch (err) {
-    if (err instanceof ApiError && err.code === 'http_404') throw new ApiError('Bunday namoz turi topilmadi.', 'not_found');
+    if (err instanceof ApiError && err.code === 'http_404') throw apiError('Bunday namoz turi topilmadi.', 'not_found');
     throw err;
   }
 }

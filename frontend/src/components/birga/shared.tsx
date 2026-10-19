@@ -1,5 +1,6 @@
 import type { BirgaRecitation, BirgaSession, Stage } from '../../types/birga';
 import type { MicStatus } from '../../hooks/useVoiceActivity';
+import { getLang } from '../../i18n';
 import type { SpeechStatus } from '../../hooks/useSpeechRecognition';
 
 export type Gender = 'erkak' | 'ayol';
@@ -66,19 +67,22 @@ export function fmtTime(sec: number): string {
 
 /** Mikrofon va nutqni aniqlash holatini bitta, halol yozuvga aylantiradi */
 export function listeningState(mic: MicStatus, speech: SpeechStatus, speechWanted: boolean) {
-  if (mic === 'requesting') return { tone: 'wait', label: 'Mikrofon so‘ralmoqda…', detail: '' } as const;
-  if (mic === 'denied') return { tone: 'off', label: 'Mikrofonga ruxsat berilmadi', detail: 'Taymer bo‘yicha davom etadi' } as const;
-  if (mic === 'insecure') return { tone: 'off', label: 'Mikrofon faqat HTTPS’da ishlaydi', detail: 'Taymer bo‘yicha davom etadi' } as const;
-  if (mic === 'unavailable') return { tone: 'off', label: 'Mikrofon topilmadi', detail: 'Taymer bo‘yicha davom etadi' } as const;
-  if (mic === 'error') return { tone: 'off', label: 'Mikrofon uzildi', detail: 'Taymer bo‘yicha davom etadi' } as const;
-  if (mic !== 'active') return { tone: 'off', label: 'Mikrofon o‘chiq', detail: 'Taymer bo‘yicha' } as const;
-  if (!speechWanted) return { tone: 'on', label: 'Ovoz faolligi kuzatilmoqda', detail: 'Faqat qurilmada · nutq tanilmaydi' } as const;
-  if (speech === 'listening') return { tone: 'on', label: 'AI tinglamoqda…', detail: 'Arabcha nutq tanilmoqda' } as const;
-  if (speech === 'network') return { tone: 'warn', label: 'Mikrofon tinglayapti', detail: 'Internet uzildi — so‘zlar tanilmaydi, ovoz bo‘yicha o‘tadi' } as const;
-  if (speech === 'service') return { tone: 'warn', label: 'Mikrofon tinglayapti', detail: 'Bu brauzer so‘zlarni tanimaydi — Chrome/Edge’da oching' } as const;
-  if (speech === 'unsupported') return { tone: 'warn', label: 'Mikrofon tinglayapti', detail: 'Bu brauzer so‘zlarni tanimaydi — Chrome/Edge’da oching' } as const;
-  if (speech === 'denied') return { tone: 'warn', label: 'Ovoz faolligi kuzatilmoqda', detail: 'Nutqni tanishga ruxsat yo‘q' } as const;
-  return { tone: 'wait', label: 'Ulanmoqda…', detail: '' } as const;
+  const t = (uz: string, ru: string) => (getLang() === 'ru' ? ru : uz);
+  const timer = t('Taymer bo‘yicha davom etadi', 'Продолжится по таймеру');
+  if (mic === 'requesting') return { tone: 'wait', label: t('Mikrofon so‘ralmoqda…', 'Запрос микрофона…'), detail: '' } as const;
+  if (mic === 'denied') return { tone: 'off', label: t('Mikrofonga ruxsat berilmadi', 'Доступ к микрофону запрещён'), detail: timer } as const;
+  if (mic === 'insecure') return { tone: 'off', label: t('Mikrofon faqat HTTPS’da ishlaydi', 'Микрофон работает только по HTTPS'), detail: timer } as const;
+  if (mic === 'unavailable') return { tone: 'off', label: t('Mikrofon topilmadi', 'Микрофон не найден'), detail: timer } as const;
+  if (mic === 'error') return { tone: 'off', label: t('Mikrofon uzildi', 'Микрофон отключился'), detail: timer } as const;
+  if (mic !== 'active') return { tone: 'off', label: t('Mikrofon o‘chiq', 'Микрофон выключен'), detail: t('Taymer bo‘yicha', 'По таймеру') } as const;
+  if (!speechWanted) return { tone: 'on', label: t('Ovoz faolligi kuzatilmoqda', 'Отслеживается голос'), detail: t('Faqat qurilmada · nutq tanilmaydi', 'Только на устройстве · речь не распознаётся') } as const;
+  if (speech === 'listening') return { tone: 'on', label: t('AI tinglamoqda…', 'ИИ слушает…'), detail: t('Arabcha nutq tanilmoqda', 'Распознаётся арабская речь') } as const;
+  const noWords = t('Bu brauzer so‘zlarni tanimaydi — Chrome/Edge’da oching', 'Браузер не распознаёт слова — откройте в Chrome/Edge');
+  if (speech === 'network') return { tone: 'warn', label: t('Mikrofon tinglayapti', 'Микрофон слушает'), detail: t('Internet uzildi — so‘zlar tanilmaydi, ovoz bo‘yicha o‘tadi', 'Нет интернета — слова не распознаются, переход по голосу') } as const;
+  if (speech === 'service') return { tone: 'warn', label: t('Mikrofon tinglayapti', 'Микрофон слушает'), detail: noWords } as const;
+  if (speech === 'unsupported') return { tone: 'warn', label: t('Mikrofon tinglayapti', 'Микрофон слушает'), detail: noWords } as const;
+  if (speech === 'denied') return { tone: 'warn', label: t('Ovoz faolligi kuzatilmoqda', 'Отслеживается голос'), detail: t('Nutqni tanishga ruxsat yo‘q', 'Нет доступа к распознаванию речи') } as const;
+  return { tone: 'wait', label: t('Ulanmoqda…', 'Подключение…'), detail: '' } as const;
 }
 
 export function MicIndicator({ state, level, speaking }: { state: ReturnType<typeof listeningState>; level: number; speaking: boolean }) {
@@ -117,7 +121,7 @@ export function CountdownRing({ remaining, total, label, small = false }: { rema
   const c = 2 * Math.PI * r;
   const ratio = total > 0 ? Math.min(1, Math.max(0, remaining / total)) : 0;
   return (
-    <div className={`relative shrink-0 ${small ? 'h-14 w-14' : 'h-24 w-24'}`} role="timer" aria-label={`Taxminiy qolgan vaqt ${Math.ceil(remaining)} soniya`}>
+    <div className={`relative shrink-0 ${small ? 'h-14 w-14' : 'h-24 w-24'}`} role="timer" aria-label={getLang() === 'ru' ? `Осталось примерно ${Math.ceil(remaining)} с` : `Taxminiy qolgan vaqt ${Math.ceil(remaining)} soniya`}>
       <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90" aria-hidden>
         <circle cx="40" cy="40" r={r} fill="rgb(0 0 0 / 0.45)" stroke="rgb(255 255 255 / 0.12)" strokeWidth="6" />
         <circle cx="40" cy="40" r={r} fill="none" stroke="#34d399" strokeWidth="6" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - ratio)} className="transition-[stroke-dashoffset] duration-200 ease-linear" />

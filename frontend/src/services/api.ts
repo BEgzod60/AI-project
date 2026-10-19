@@ -1,4 +1,5 @@
 import type { ApiErrorPayload } from '../types/prayer';
+import { getLang } from '../i18n';
 
 /** Backend xatosini (ApiErrorPayload) tashiydigan umumiy xato klassi */
 export class ApiError extends Error {
@@ -11,6 +12,23 @@ export class ApiError extends Error {
   }
 }
 
+/** Ruscha interfeysda backend xato kodlari ruscha matnga almashtiriladi (backend xabarlari o'zbekcha) */
+const RU_ERRORS: Record<string, string> = {
+  network: 'Ошибка подключения к серверу. Проверьте интернет и попробуйте снова.',
+  bad_response: 'Сервер вернул некорректный ответ.',
+  not_found: 'Не найдено.',
+  invalid: 'Проверьте введённые данные.',
+  rate_limited: 'Слишком много запросов — попробуйте позже.',
+  not_configured: 'Форма связи пока не настроена. Свяжитесь по email или телефону.',
+  upstream_error: 'Не удалось отправить — попробуйте чуть позже.',
+  limit: 'Достигнут лимит активных ключей для этого email.',
+};
+
+export function apiError(message: string, code: string): ApiError {
+  if (getLang() !== 'ru') return new ApiError(message, code);
+  return new ApiError(RU_ERRORS[code] ?? 'Запрос не выполнен.', code);
+}
+
 const BASE_URL = '/api';
 
 function buildUrl(path: string, params?: Record<string, string | undefined>): string {
@@ -20,6 +38,8 @@ function buildUrl(path: string, params?: Record<string, string | undefined>): st
       if (value !== undefined && value !== '') url.searchParams.set(key, value);
     }
   }
+  // Ruscha interfeysda backend ruscha mazmunni (bor bo'lsa) qaytaradi
+  if (getLang() === 'ru' && !url.searchParams.has('lang')) url.searchParams.set('lang', 'ru');
   return url.pathname + url.search;
 }
 
@@ -53,19 +73,19 @@ export async function apiGet<T>(
   try {
     response = await fetchWithRetry(buildUrl(path, params));
   } catch {
-    throw new ApiError('Serverga ulanishda xatolik. Internetni tekshirib, qayta urinib ko‘ring.', 'network');
+    throw apiError('Serverga ulanishda xatolik. Internetni tekshirib, qayta urinib ko‘ring.', 'network');
   }
 
   let payload: unknown;
   try {
     payload = await response.json();
   } catch {
-    throw new ApiError('Server noto‘g‘ri javob qaytardi.', 'bad_response');
+    throw apiError('Server noto‘g‘ri javob qaytardi.', 'bad_response');
   }
 
   if (!response.ok) {
     const err = (payload as { error?: ApiErrorPayload }).error;
-    throw new ApiError(err?.message ?? 'So‘rov bajarilmadi.', err?.code ?? 'http_' + response.status);
+    throw apiError(err?.message ?? 'So‘rov bajarilmadi.', err?.code ?? 'http_' + response.status);
   }
 
   return payload as T;
@@ -81,19 +101,19 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new ApiError('Serverga ulanishda xatolik.', 'network');
+    throw apiError('Serverga ulanishda xatolik.', 'network');
   }
 
   let payload: unknown;
   try {
     payload = await response.json();
   } catch {
-    throw new ApiError('Server noto‘g‘ri javob qaytardi.', 'bad_response');
+    throw apiError('Server noto‘g‘ri javob qaytardi.', 'bad_response');
   }
 
   if (!response.ok) {
     const err = (payload as { error?: ApiErrorPayload }).error;
-    throw new ApiError(err?.message ?? 'So‘rov bajarilmadi.', err?.code ?? 'http_' + response.status);
+    throw apiError(err?.message ?? 'So‘rov bajarilmadi.', err?.code ?? 'http_' + response.status);
   }
 
   return payload as T;

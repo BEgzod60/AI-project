@@ -1,7 +1,9 @@
-"""muslim.uz «Namoz» va «Iymon» bo'limlari matnlarini import qilish.
+"""muslim.uz «Namoz», «Iymon», «Zakot» va «Ro‘za» bo'limlari matnlarini import qilish.
 
     python manage.py import_muslimuz                  # Namoz: saytdan yuklab, yangi bo'limlarni qo'shadi
     python manage.py import_muslimuz --category iymon # Iymon bo'limi (muslim.uz/uz/c/iyman)
+    python manage.py import_muslimuz --category zakot # Zakot bo'limi (muslim.uz/uz/c/zakot)
+    python manage.py import_muslimuz --category roza  # Ro'za bo'limi (muslim.uz/uz/c/fasting)
     python manage.py import_muslimuz --dry-run        # faqat hisobot
     python manage.py import_muslimuz --update         # mavjud bo'limlar matnini ham yangilaydi (holatiga tegmaydi)
     python manage.py import_muslimuz --keep-arabic    # arab yozuvidagi xatboshilarni saqlash (sukut — olib tashlanadi)
@@ -27,11 +29,13 @@ REVIEWED_BY = f'{PUBLISHER} (muslim.uz)'
 SOURCES = {
     Topic.Category.NAMOZ: ('prayer', 'Namoz', 'muslim.uz'),  # prefiks avvalgi importlar bilan mos
     Topic.Category.IYMON: ('iyman', 'Iymon', 'muslim.uz/iyman'),
+    Topic.Category.ZAKOT: ('zakot', 'Zakot', 'muslim.uz/zakot'),
+    Topic.Category.ROZA: ('fasting', 'Ro‘za', 'muslim.uz/fasting'),
 }
 
 
 def _norm(title):
-    return re.sub(r'[^\w]', '', mu.fix_homoglyphs(title).lower())
+    return re.sub(r'[^\w]', '', mu.sentence_case(mu.fix_homoglyphs(title)).lower())
 
 
 def _fetch(url):
@@ -59,7 +63,7 @@ def _needs_fallback(uz_body, oz_body, keep_arabic):
 
 
 class Command(BaseCommand):
-    help = "muslim.uz «Namoz»/«Iymon» sahifalaridagi matnlarni tegishli bo'limga import qiladi."
+    help = "muslim.uz «Namoz»/«Iymon»/«Zakot»/«Ro‘za» sahifalaridagi matnlarni tegishli bo'limga import qiladi."
 
     def add_arguments(self, parser):
         parser.add_argument('--category', default=Topic.Category.NAMOZ, choices=list(SOURCES), help="Bo'lim")

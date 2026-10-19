@@ -105,10 +105,11 @@ class SequenceTests(TestCase):
     def test_timings(self):
         self.four_rakat()
         by_title = {s['title']: s['timing'] for s in self.sequence()[0] if s['kind'] == 'posture'}
-        self.assertEqual(by_title['Ruku’'], (4, 6))
-        self.assertEqual(by_title['Sajda'], (4, 6))
+        # Tasbeh (×3) uchun eng kami 8 soniya
+        self.assertEqual(by_title['Ruku’'], (8, 12))
+        self.assertEqual(by_title['Sajda'], (8, 12))
         self.assertEqual(by_title['Qavma (tik turish)'], (3, 5))
-        self.assertEqual(by_title['Jalsa va ikkinchi sajda'], (7, 11))
+        self.assertEqual(by_title['Jalsa va ikkinchi sajda'], (11, 17))
         self.assertTrue(all(s['timing'] is None for s in self.sequence()[0] if s['kind'] == 'recitation'))
 
     def test_unrecognised_structure_is_not_supported(self):
@@ -190,7 +191,7 @@ class SequenceTests(TestCase):
         self.assertEqual(said(stages['Qavma (tik turish)']), [('Tik turgach', 'Robbanaa, lakal hamd')])
         self.assertEqual(said(stages['Sajda']), [('Borishda', 'Allohu akbar'), ('Sajdada', 'Subhana Robbiyal-a’la'), ('Turishda', 'Allohu akbar')])
         self.assertEqual(second['images'][0]['src'], '/sajda.webp')
-        self.assertEqual(second['timing'], (4, 6))
+        self.assertEqual(second['timing'], (8, 12))
         self.assertEqual(stages['Jalsa']['zikr'], [])  # turishdagi takbir sajdada ko'rsatiladi
         self.assertEqual(stages['Jalsa']['timing'], (3, 5))
         self.assertEqual(stages['Sajda']['zikr'][1], {'text': 'Subhana Robbiyal-a’la', 'meaning': 'Oliy Robbim pokdir', 'times': 3, 'label': 'Sajdada'})
@@ -296,6 +297,19 @@ class SequenceTests(TestCase):
         self.assertTrue(all('source_title' in st for st in data['stages']))
         sunnat = self._part(0)
         self.assertTrue(any('to-rt-rakatli-sunnat' in x['url'] for x in sunnat['sources']))
+
+    def test_russian_labels_keep_religious_text(self):
+        self._parts_category()
+        ru = self.client.get('/api/namoz-organish/test-peshin/birga/?lang=ru').json()
+        uz = self._part()
+        titles = {s['title'] for s in ru['stages']}
+        self.assertIn('Намерение (ният)', titles)
+        self.assertIn('Салям вправо', titles)
+        self.assertIn('ханафитском', ru['safety_notice'])
+        # zikr matni (lotincha o'qilishi) o'zgarmaydi
+        self.assertEqual([z['text'] for s in ru['stages'] for z in s['zikr']], [z['text'] for s in uz['stages'] for z in s['zikr']])
+        self.assertTrue(all(z['meaning'] == '' for s in ru['stages'] for z in s['zikr']))
+        self.assertEqual(ru['recitations']['istigfor']['name'], 'Истигфар')
 
     def test_lesson_payload_flags_support(self):
         self.four_rakat()

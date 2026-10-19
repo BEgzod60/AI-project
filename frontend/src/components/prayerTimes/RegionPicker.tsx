@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { REGIONS } from '../../utils/constants';
-import { REGION_COORDS } from './clock';
+import { REGIONS, regionLabel } from '../../utils/constants';
+import { REGION_COORDS, cityLabel } from './clock';
+import { useI18n } from '../../i18n';
 
 const COLUMNS = 2;
 
@@ -9,6 +10,8 @@ interface Props {
   onChange: (region: string) => void;
   /** hero — qorong'i fon ustida (namoz vaqtlari sahifasi), compact — header uchun */
   variant?: 'hero' | 'compact';
+  /** hero: panel tugmaning qaysi chetiga tekislanadi (tugma o'ngda tursa — right, ekrandan chiqmasin) */
+  align?: 'left' | 'right';
 }
 
 function PinIcon({ className }: { className: string }) {
@@ -21,7 +24,7 @@ function PinIcon({ className }: { className: string }) {
 }
 
 /** Viloyat tanlash: yumaloq "chip"lardan iborat ochiladigan panel (listbox) */
-export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
+export function RegionPicker({ value, onChange, variant = 'hero', align = 'left' }: Props) {
   const compact = variant === 'compact';
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, REGIONS.indexOf(value as (typeof REGIONS)[number])));
@@ -29,7 +32,9 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const optionRefs = useRef<(HTMLLIElement | null)[]>([]);
   const listId = useId();
-  const city = REGION_COORDS[value]?.city;
+  const { t, lang } = useI18n();
+  const city = REGION_COORDS[value] ? cityLabel(value, lang) : undefined;
+  const shown = regionLabel(value, lang);
 
   // Ochilganda tanlangan viloyatga fokus
   useEffect(() => {
@@ -88,7 +93,7 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
   };
 
   return (
-    <div ref={rootRef} className={compact ? 'relative' : 'relative min-w-[240px]'}>
+    <div ref={rootRef} className={compact ? 'relative' : 'relative min-w-0 sm:min-w-[240px]'}>
       <button
         ref={buttonRef}
         type="button"
@@ -102,7 +107,7 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
             setOpen(true);
           }
         }}
-        aria-label={compact ? `Hudud: ${value}` : undefined}
+        aria-label={compact ? `${t('Hudud', 'Регион')}: ${shown}` : undefined}
         className={
           compact
             ? `flex items-center gap-2 rounded-full border bg-white py-1.5 pl-1.5 pr-3 text-left shadow-sm transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 dark:bg-neutral-800 ${
@@ -125,11 +130,11 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
           <PinIcon className={compact ? 'h-4 w-4' : 'h-5 w-5'} />
         </span>
         {compact ? (
-          <span className="max-w-[7.5rem] truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">{value}</span>
+          <span className="max-w-[6.5rem] truncate text-sm font-semibold sm:max-w-[7.5rem] text-neutral-800 dark:text-neutral-100">{shown}</span>
         ) : (
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] text-white/60">Hudud</span>
-            <span className="block truncate font-semibold text-white">{value}</span>
+            <span className="block text-[11px] text-white/60">{t('Hudud', 'Регион')}</span>
+            <span className="block truncate font-semibold text-white">{shown}</span>
           </span>
         )}
         <svg
@@ -150,14 +155,16 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
             compact
               ? // Mobilda header kengligida (header backdrop-blur — fixed uchun o'rab turuvchi blok), kattada tugma ostida o'ngda
                 'fixed inset-x-4 origin-top sm:absolute sm:inset-x-auto sm:right-0 sm:w-[26rem] sm:origin-top-right'
-              : 'absolute left-0 w-[min(92vw,26rem)] origin-top-left'
+              : align === 'right'
+                ? 'absolute inset-x-0 origin-top sm:left-auto sm:w-[26rem] sm:origin-top-right'
+                : 'absolute left-0 w-[min(92vw,26rem)] origin-top-left'
           } bg-primary-900/95 p-3 shadow-2xl shadow-black/40 ring-1 ring-white/15 backdrop-blur-md motion-safe:animate-fade-in`}
         >
-          <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/50">Hududni tanlang</p>
+          <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-white/50">{t('Hududni tanlang', 'Выберите регион')}</p>
           <ul
             id={listId}
             role="listbox"
-            aria-label="Hududlar"
+            aria-label={t('Hududlar', 'Регионы')}
             onKeyDown={onListKey}
             className="grid max-h-[22rem] grid-cols-2 gap-1.5 overflow-y-auto pr-1"
           >
@@ -195,10 +202,10 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
                     )}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">{r}</span>
+                    <span className="block truncate text-sm font-semibold">{regionLabel(r, lang)}</span>
                     {REGION_COORDS[r] && REGION_COORDS[r].city !== r && (
                       <span className={`block truncate text-[11px] ${selected ? 'text-primary-900/70' : 'text-white/50'}`}>
-                        {REGION_COORDS[r].city}
+                        {cityLabel(r, lang)}
                       </span>
                     )}
                   </span>
@@ -208,7 +215,7 @@ export function RegionPicker({ value, onChange, variant = 'hero' }: Props) {
           </ul>
         </div>
       )}
-      {city && city !== value && <span className="sr-only">Markaz: {city}</span>}
+      {city && city !== shown && <span className="sr-only">{t('Markaz', 'Центр')}: {city}</span>}
     </div>
   );
 }

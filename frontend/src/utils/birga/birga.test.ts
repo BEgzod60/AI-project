@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BirgaSettings, BirgaSettingsSchema, Stage } from '../../types/birga';
 import { arabicWords, matchRecitation, normalizeArabic } from './arabic';
-import { HARD_CAP_FACTOR, SILENCE_BEFORE_COUNTDOWN, evaluateStage, expectedSeconds, scrollProgress, type EngineInput } from './engine';
+import { HARD_CAP_FACTOR, MIN_TASBIH_SECONDS, SILENCE_BEFORE_COUNTDOWN, evaluateStage, expectedSeconds, scrollProgress, type EngineInput } from './engine';
 import { nextNoiseFloor, speechThreshold } from './vad';
 import { AYAH_HEARD, labeledTransliteration, latinAyahs, splitTransliteration } from './latin';
 import { defaultZamChoice } from '../../components/birga/shared';
@@ -79,6 +79,18 @@ describe('taxminiy davomiylik', () => {
     expect(expectedSeconds(ruku, '', settings({ speed: 'sekin' }), schema)).toBe(6);
     expect(expectedSeconds(ruku, '', settings({ speed: 'ortacha' }), schema)).toBe(5);
     expect(expectedSeconds(ruku, '', settings({ speed: 'tez' }), schema)).toBe(4);
+  });
+
+  it('uch martalik tasbehli holatga (ruku’, sajda) kamida 8 soniya beradi', () => {
+    const tasbih = [{ text: 'Subhana Robbiyal-’aziym', meaning: '', times: 3, label: 'Ruku’da' }];
+    const ruku = stage({ kind: 'posture', timing: [4, 6], recitation: null, zikr: tasbih });
+    for (const speed of ['sekin', 'ortacha', 'tez'] as const) {
+      expect(expectedSeconds(ruku, '', settings({ speed }), schema)).toBeGreaterThanOrEqual(MIN_TASBIH_SECONDS);
+    }
+    expect(MIN_TASBIH_SECONDS).toBe(8);
+    // Backend'dagi yangi oraliq (8–12) o'zgarishsiz qoladi
+    const longer = stage({ kind: 'posture', timing: [8, 12], recitation: null, zikr: tasbih });
+    expect(expectedSeconds(longer, '', settings({ speed: 'sekin' }), schema)).toBe(12);
   });
 
   it('uzun matnga ko‘proq vaqt beradi va chegaralaydi', () => {

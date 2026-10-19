@@ -1,5 +1,6 @@
 /** Vaqt bilan ishlash utilitlari */
-import { MONTHS_UZ } from './constants';
+import { MONTHS_RU_GEN, MONTHS_UZ } from './constants';
+import type { Lang } from '../i18n';
 
 /** 'HH:MM' -> sekundlar */
 export function timeToSeconds(time: string): number {
@@ -19,4 +20,10 @@ export function formatCountdown(totalSeconds: number): string {
 /** Berilgan kunga oid sana stringini Uzbekchada chiqaradi: '15-oktabr 2026' */
 export function formatUzDate(date: Date): string {
   return date.getDate() + '-' + MONTHS_UZ[date.getMonth()] + ' ' + date.getFullYear();
+}
+
+/** Sana tanlangan tilda: '15-oktabr 2026' / '15 октября 2026' */
+export function formatDate(date: Date, lang: Lang): string {
+  if (lang === 'ru') return `${date.getDate()} ${MONTHS_RU_GEN[date.getMonth()]} ${date.getFullYear()}`;
+  return formatUzDate(date);
 }

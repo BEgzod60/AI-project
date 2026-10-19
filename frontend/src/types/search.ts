@@ -1,9 +1,9 @@
-import type { TopicIcon } from './namoz';
+import type { TopicCategory, TopicIcon } from './namoz';
 
 /** Backend: apps/namoz/search.py */
 export interface SearchResult {
   type: 'topic' | 'section';
-  category: 'namoz' | 'iymon';
+  category: TopicCategory;
   slug: string;
   number: number;
   icon: TopicIcon;

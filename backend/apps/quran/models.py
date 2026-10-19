@@ -33,6 +33,7 @@ class Ayah(models.Model):
     number = models.PositiveSmallIntegerField('Oyat raqami')
     text_arabic = models.TextField('Arabcha matn')
     translation_uz = models.TextField('Ma’nosi (o‘zbekcha)', blank=True)
+    translation_ru = models.TextField('Ma’nosi (ruscha, Kuliyev)', blank=True)
 
     class Meta:
         ordering = ['surah__number', 'number']

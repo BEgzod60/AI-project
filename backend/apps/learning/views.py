@@ -42,7 +42,7 @@ def birga_view(request, slug):
         part = int(request.query_params['qism']) if 'qism' in request.query_params else None
     except ValueError:
         part = None
-    return Response(birga.session_payload(category, part))
+    return Response(birga.localize(birga.session_payload(category, part), request.query_params.get('lang')))
 
 
 @api_view(['GET'])

@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_UID: ${APP_UID:-1000}
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend,.trycloudflare.com}
+    volumes:
+      # Baza hozircha SQLite (host'dagi fayl), media — Qur'on audiolari va h.k.
+      - ./backend/db.sqlite3:/app/db.sqlite3
+      - ./backend/media:/app/media
+      - static:/app/static
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/quran/surahs/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-8090}:80"
+    volumes:
+      - static:/srv/static:ro
+      - ./backend/media:/srv/media:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Telefonda sinash uchun vaqtinchalik HTTPS havola (kompas va joylashuv faqat HTTPS'da ishlaydi).
+  # Faqat qo'lda: `docker compose --profile tunnel up tunnel` — havola logda chiqadi (*.trycloudflare.com).
+  tunnel:
+    image: cloudflare/cloudflared:2024.12.2
+    command: tunnel --no-autoupdate --url http://frontend:80
+    depends_on:
+      - frontend
+    profiles:
+      - tunnel
+
+volumes:
+  static:

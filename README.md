@@ -112,6 +112,22 @@ npm run dev
 
 Frontend: http://localhost:5173
 
+### Docker
+
+```bash
+docker compose up -d --build
+```
+
+Sayt: http://localhost:8090 (port band bo'lsa: `WEB_PORT=8091 docker compose up -d`).
+
+- `backend` — Django + gunicorn; ishga tushganda `migrate` va `collectstatic` bajariladi.
+- `frontend` — Vite build + nginx; `/api` va `/admin` ni backend'ga uzatadi, `/static` va `/media` ni o'zi beradi.
+- Baza hozircha host'dagi `backend/db.sqlite3`, media — `backend/media/` (konteynerga ulanadi, image'ga kirmaydi).
+- Sozlamalar `backend/.env` dan olinadi; Docker'da `DJANGO_DEBUG=false` (o'zgartirish: `DJANGO_DEBUG=true docker compose up -d`).
+- Host foydalanuvchisi UID 1000 bo'lmasa: `APP_UID=$(id -u) docker compose build`.
+- Boshqaruv buyruqlari: `docker compose exec backend python manage.py <buyruq>`.
+- Telefonda sinash (kompas va joylashuv faqat HTTPS'da ishlaydi): `docker compose --profile tunnel up -d tunnel`, so'ng `docker compose logs tunnel | grep trycloudflare` — vaqtinchalik HTTPS havola. Sayt shu havola orqali internetdan ochiq bo'ladi; sinovdan keyin: `docker compose stop tunnel`.
+
 ## Asosiy API
 
 - `GET /api/prayer-times/?city=Toshkent` — berilgan hudud uchun kunlik namoz vaqtlari

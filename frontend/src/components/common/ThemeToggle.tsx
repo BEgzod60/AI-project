@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { THEME_STORAGE_KEY } from '../../utils/constants';
+import { useT } from '../../i18n';
 
 function getInitialTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light';
@@ -7,6 +8,9 @@ function getInitialTheme(): 'light' | 'dark' {
   if (stored === 'light' || stored === 'dark') return stored;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
+
+/** Bir nechta tugma (header va mobil menyu) bir-biri bilan sinxron bo'lishi uchun */
+const THEME_EVENT = 'iymon:theme';
 
 export function useTheme() {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
@@ -16,10 +20,21 @@ export function useTheme() {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  return { theme, toggle: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')) };
+  useEffect(() => {
+    const onChange = (e: Event) => setTheme((e as CustomEvent<'light' | 'dark'>).detail);
+    window.addEventListener(THEME_EVENT, onChange);
+    return () => window.removeEventListener(THEME_EVENT, onChange);
+  }, []);
+
+  const toggle = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: next }));
+  };
+  return { theme, toggle };
 }
 
 export function ThemeToggle() {
+  const t = useT();
   const { theme, toggle } = useTheme();
   const isDark = theme === 'dark';
 
@@ -27,7 +42,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? 'Yorug\u2018 rejimga o\u2018tish' : 'Tungi rejimga o\u2018tish'}
+      aria-label={isDark ? t('Yorug‘ rejimga o‘tish', 'Светлая тема') : t('Tungi rejimga o‘tish', 'Тёмная тема')}
       className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white p-1.5 shadow-sm transition hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800"
     >
       {/* Quyosh */}

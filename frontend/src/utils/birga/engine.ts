@@ -8,13 +8,16 @@ import type { MatchResult } from './arabic';
 
 export type AdvanceReason = 'speech' | 'voice' | 'timer';
 
+/** Uch marta aytiladigan tasbeh (ruku', sajda) uchun eng kam vaqt — o'qib ulgurish uchun */
+export const MIN_TASBIH_SECONDS = 8;
+
 /** Bosqichning taxminiy davomiyligi (soniya) */
 export function expectedSeconds(stage: Stage, text: string, settings: BirgaSettings, schema: BirgaSettingsSchema): number {
   if (stage.timing) {
     const [min, max] = stage.timing;
-    if (settings.speed === 'sekin') return max;
-    if (settings.speed === 'tez') return min;
-    return (min + max) / 2;
+    const value = settings.speed === 'sekin' ? max : settings.speed === 'tez' ? min : (min + max) / 2;
+    const tasbih = stage.zikr?.some((z) => z.times >= 3);
+    return tasbih ? Math.max(MIN_TASBIH_SECONDS, value) : value;
   }
   const cps = schema.speeds[settings.speed];
   const { min, max } = schema.recitation_seconds;

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { PRAYER_LABELS } from '../../utils/constants';
+import { PRAYER_LABELS, prayerLabel } from '../../utils/constants';
 import type { PrayerDay, PrayerTimings } from '../../types/prayer';
+import { useI18n } from '../../i18n';
 
 interface MonthTableProps {
   days: PrayerDay[];
@@ -14,6 +15,7 @@ function todayIso(): string {
 
 /** Oylik namoz vaqtlari jadvali (ota flex konteynerning qolgan balandligini egallaydi); bugungi kun ajratib ko'rsatiladi va ko'rinishga suriladi */
 export function MonthTable({ days }: MonthTableProps) {
+  const { t, lang } = useI18n();
   const today = todayIso();
   const scrollRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLTableRowElement>(null);
@@ -31,10 +33,10 @@ export function MonthTable({ days }: MonthTableProps) {
       <table className="w-full text-center text-[11px] tabular-nums">
         <thead className="sticky top-0 bg-primary-900 text-white/60">
           <tr>
-            <th scope="col" className="py-2 pl-3 text-left font-semibold">Kun</th>
-            {PRAYER_LABELS.map(({ key, label }) => (
+            <th scope="col" className="py-2 pl-3 text-left font-semibold">{t('Kun', 'День')}</th>
+            {PRAYER_LABELS.map(({ key }) => (
               <th key={key} scope="col" className="px-1 py-2 font-semibold">
-                {label.slice(0, 4)}
+                {prayerLabel(key, lang).slice(0, 4)}
               </th>
             ))}
           </tr>

@@ -1,4 +1,6 @@
 /** Qibla hisob-kitoblari: katta doira (great-circle) formulalari */
+import { magvar } from 'magvar';
+import { getLang } from '../../i18n';
 
 export const KAABA = { lat: 21.4225, lon: 39.8262 } as const;
 
@@ -19,6 +21,15 @@ export function initialBearing(from: LatLon, to: LatLon = KAABA): number {
   const y = Math.sin(dl) * Math.cos(p2);
   const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
   return (deg(Math.atan2(y, x)) + 360) % 360;
+}
+
+/**
+ * Magnit og'ish (deklinatsiya, WMM2025): magnit shimol haqiqiy shimoldan necha gradus sharqda (+) yoki g'arbda (−).
+ * Telefon kompasi magnit shimolni beradi, Qibla yo'nalishi esa haqiqiy shimoldan: haqiqiy = magnit + og'ish.
+ */
+export function magneticDeclination(p: LatLon, when: Date = new Date()): number {
+  const d = magvar(p.lat, p.lon, 0, when);
+  return Number.isFinite(d) ? d : 0;
 }
 
 /** Ikki nuqta orasidagi masofa (haversine), metr */
@@ -65,14 +76,17 @@ export function angleDiff(a: number, b: number): number {
 
 /** 3209456 -> "3 209 km"; 820 -> "820 m"; 1640 -> "1.6 km" */
 export function formatDistance(meters: number): string {
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  if (meters < 10_000) return `${(meters / 1000).toFixed(1)} km`;
+  const [m, km] = getLang() === 'ru' ? ['м', 'км'] : ['m', 'km'];
+  if (meters < 1000) return `${Math.round(meters)} ${m}`;
+  if (meters < 10_000) return `${(meters / 1000).toFixed(1)} ${km}`;
   // Minglar bo'sh joy bilan: 3531 -> "3 531" (brauzer lokaliga bog'liq bo'lmasin)
-  return `${String(Math.round(meters / 1000)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')} km`;
+  return `${String(Math.round(meters / 1000)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')} ${km}`;
 }
 
 /** Yo'nalish nomi: 243 -> "janubi-g'arb" */
 export function compassPoint(bearing: number): string {
-  const names = ['shimol', 'shimoli-sharq', 'sharq', 'janubi-sharq', 'janub', 'janubi-g‘arb', 'g‘arb', 'shimoli-g‘arb'];
+  const names = getLang() === 'ru'
+    ? ['север', 'северо-восток', 'восток', 'юго-восток', 'юг', 'юго-запад', 'запад', 'северо-запад']
+    : ['shimol', 'shimoli-sharq', 'sharq', 'janubi-sharq', 'janub', 'janubi-g‘arb', 'g‘arb', 'shimoli-g‘arb'];
   return names[Math.round(bearing / 45) % 8];
 }

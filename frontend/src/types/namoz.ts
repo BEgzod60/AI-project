@@ -5,7 +5,12 @@ export type TopicIcon =
   | 'dua' | 'clock' | 'layers' | 'moon' | 'sajda' | 'lantern'
   // Iymon bo'limi
   | 'scroll' | 'heart' | 'star8' | 'wings' | 'pillars' | 'horizon'
-  | 'hourglass' | 'sprout' | 'shield' | 'people' | 'scale';
+  | 'hourglass' | 'sprout' | 'shield' | 'people' | 'scale'
+  // Zakot bo'limi
+  | 'hand_coin' | 'sheep' | 'coins' | 'banknote' | 'store' | 'ring' | 'gem';
+
+/** Mavzuli bo'limlar: /api/<category>/topics/ */
+export type TopicCategory = 'namoz' | 'iymon' | 'zakot' | 'roza';
 
 export type TopicTheme = 'emerald' | 'cream' | 'forest' | 'gold' | 'teal' | 'sand';
 

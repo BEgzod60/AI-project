@@ -1,3 +1,4 @@
+import { getLang } from '../i18n';
 import { useEffect, useState } from 'react';
 import { ApiError } from '../services/api';
 
@@ -27,7 +28,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[]): UseApiRes
       .catch((err: unknown) => {
         if (cancelled) return;
         if (err instanceof ApiError) setError(err.message);
-        else setError('Namoz vaqtlarini yuklashda kutilmagan xatolik yuz berdi.');
+        else setError(getLang() === 'ru' ? 'Непредвиденная ошибка при загрузке данных.' : 'Namoz vaqtlarini yuklashda kutilmagan xatolik yuz berdi.');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

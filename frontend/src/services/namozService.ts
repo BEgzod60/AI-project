@@ -1,7 +1,5 @@
-import { ApiError, apiGet } from './api';
-import type { NamozTopic, NamozTopicDetail } from '../types/namoz';
-
-type Category = 'namoz' | 'iymon';
+import { ApiError, apiError, apiGet } from './api';
+import type { NamozTopic, NamozTopicDetail, TopicCategory as Category } from '../types/namoz';
 
 /** Bo'lim mavzulari ro'yxati: /api/<category>/topics/ */
 export function getTopics(category: Category): Promise<NamozTopic[]> {
@@ -14,7 +12,7 @@ export async function getTopic(category: Category, slug: string): Promise<NamozT
     return await apiGet<NamozTopicDetail>(`/${category}/topics/${encodeURIComponent(slug)}/`);
   } catch (err) {
     if (err instanceof ApiError && err.code === 'http_404') {
-      throw new ApiError('Bunday mavzu topilmadi.', 'not_found');
+      throw apiError('Bunday mavzu topilmadi.', 'not_found');
     }
     throw err;
   }

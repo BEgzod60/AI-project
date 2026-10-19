@@ -40,9 +40,20 @@ export const speechSupported = () => typeof window !== 'undefined' && getCtor() 
 /** Brave'da SpeechRecognition bor, lekin Google xizmatiga ulanmaydi — har doim «network» xatosi beradi */
 export const isBrave = () => typeof navigator !== 'undefined' && 'brave' in navigator;
 
+/**
+ * Android'dagi Chrome nutq tanishni har bir jimlikdan keyin o'zi to'xtatadi (continuous e'tiborga olinmaydi),
+ * har qayta ishga tushirishda esa tizim ovozini chiqaradi va mikrofon belgisi miltillaydi (saytdan o'chirib
+ * bo'lmaydi). Shuning uchun Android'da jimlikda qayta ulanmaydi — foydalanuvchi gapira boshlaganda ulanadi.
+ */
+export const speechRestartBeeps = () => typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
 const MAX_NETWORK_RETRIES = 3;
 
-export function useSpeechRecognition(enabled: boolean, lang = 'ar-SA') {
+/**
+ * @param resumeWhen Android'da: ulanish (start) faqat shu true bo'lganda — masalan, qurilmadagi ovoz faolligi
+ *   «gapiryapti» deganda. Berilmasa yoki boshqa qurilmalarda — avvalgidek darhol ulanadi.
+ */
+export function useSpeechRecognition(enabled: boolean, lang = 'ar-SA', resumeWhen?: boolean) {
   const [status, setStatus] = useState<SpeechStatus>(() => (speechSupported() ? 'off' : 'unsupported'));
   const [transcript, setTranscript] = useState('');
   const finalText = useRef('');
@@ -51,6 +62,11 @@ export function useSpeechRecognition(enabled: boolean, lang = 'ar-SA') {
   const networkErrors = useRef(0);
   // Shu seansda biror marta natija keldimi (kelmagan bo'lsa «network» — xizmat yo'qligi belgisi)
   const gotResult = useRef(false);
+  // Android: gapirish boshlanishini kutayotgan ulanish
+  const resumeRef = useRef(resumeWhen ?? true);
+  resumeRef.current = resumeWhen ?? true;
+  const pendingStart = useRef<(() => void) | null>(null);
+  const gated = resumeWhen !== undefined && speechRestartBeeps();
 
   const reset = useCallback(() => {
     finalText.current = '';
@@ -107,29 +123,37 @@ export function useSpeechRecognition(enabled: boolean, lang = 'ar-SA') {
         setStatus('error');
       }
     };
+    const startNow = () => {
+      if (!wanted.current) return;
+      try {
+        rec.start();
+      } catch {
+        /* allaqachon ishlayapti */
+      }
+    };
+    // Android'da jimlikda ulanmaymiz (har ulanish ovoz chiqaradi) — gapira boshlaganda ulanadi
+    const startWhenSpeaking = () => {
+      if (gated && !resumeRef.current) pendingStart.current = startNow;
+      else startNow();
+    };
+
     // Chrome bir muddat jimlikdan keyin to'xtaydi — rejim yoqiq bo'lsa qayta ishga tushiriladi
     rec.onend = () => {
       if (!wanted.current) return;
       const delay = networkErrors.current ? 1000 * networkErrors.current : 150;
-      window.setTimeout(() => {
-        if (!wanted.current) return;
-        try {
-          rec.start();
-        } catch {
-          /* allaqachon ishlayapti */
-        }
-      }, delay);
+      window.setTimeout(startWhenSpeaking, delay);
     };
 
-    setStatus('starting');
+    setStatus(gated ? 'listening' : 'starting');
     try {
-      rec.start();
+      startWhenSpeaking();
     } catch {
       setStatus('error');
     }
 
     return () => {
       wanted.current = false;
+      pendingStart.current = null;
       rec.onend = null;
       rec.onresult = null;
       rec.onerror = null;
@@ -141,7 +165,15 @@ export function useSpeechRecognition(enabled: boolean, lang = 'ar-SA') {
       recRef.current = null;
       setStatus((s) => (s === 'unsupported' ? s : 'off'));
     };
-  }, [enabled, lang]);
+  }, [enabled, lang, gated]);
+
+  // Kutilayotgan ulanish — foydalanuvchi gapira boshlashi bilan
+  useEffect(() => {
+    if (!resumeWhen || !pendingStart.current) return;
+    const start = pendingStart.current;
+    pendingStart.current = null;
+    start();
+  }, [resumeWhen]);
 
   return { status, transcript, reset };
 }

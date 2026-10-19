@@ -1,4 +1,5 @@
-import { REGIONS, DEFAULT_REGION } from '../../utils/constants';
+import { REGIONS, DEFAULT_REGION, regionLabel } from '../../utils/constants';
+import { useI18n } from '../../i18n';
 
 interface RegionSelectProps {
   value: string;
@@ -6,6 +7,7 @@ interface RegionSelectProps {
 }
 
 export function RegionSelect({ value, onChange }: RegionSelectProps) {
+  const { lang } = useI18n();
   return (
     <label className="relative inline-flex items-center">
       <span className="sr-only">Hudud tanlash</span>
@@ -22,7 +24,7 @@ export function RegionSelect({ value, onChange }: RegionSelectProps) {
       >
         {[DEFAULT_REGION, ...REGIONS.filter((r) => r !== DEFAULT_REGION)].map((region) => (
           <option key={region} value={region}>
-            {region}
+            {regionLabel(region, lang)}
           </option>
         ))}
       </select>

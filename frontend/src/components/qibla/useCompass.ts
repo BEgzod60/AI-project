@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   yo'nalish `webkitCompassHeading`, aniqlik `webkitCompassAccuracy`.
  * - Android/Chrome: `deviceorientationabsolute` (alpha — shimolga nisbatan).
  * Nisbiy (absolute=false) ma'lumot kompas uchun yaroqsiz — u ishonchsiz deb hisoblanadi.
+ * Ikkala platforma ham magnit shimolni beradi — haqiqiy shimolga o'tkazish (magnit og'ish) chaqiruvchida.
  */
 
 export type CompassStatus = 'idle' | 'requesting' | 'active' | 'denied' | 'unsupported' | 'unreliable';
@@ -21,6 +22,14 @@ type PermissionFn = () => Promise<'granted' | 'denied'>;
 const MAX_ACCURACY_DEG = 25;
 /** Shuncha vaqt ichida yaroqli ma'lumot kelmasa — sensor yo'q yoki ishlamaydi */
 const FIRST_READING_TIMEOUT = 3000;
+
+/** Telefonning gorizontaldan og'ishi (gradus): 0 — stolda tekis yotibdi, 90 — tik turibdi */
+function tiltFrom(beta: number | null, gamma: number | null): number | null {
+  if (typeof beta !== 'number' || typeof gamma !== 'number') return null;
+  const rad = Math.PI / 180;
+  const c = Math.cos(beta * rad) * Math.cos(gamma * rad);
+  return Math.acos(Math.max(-1, Math.min(1, c))) / rad;
+}
 
 function screenAngle(): number {
   const angle = window.screen?.orientation?.angle ?? (window as unknown as { orientation?: number }).orientation ?? 0;
@@ -38,6 +47,7 @@ export function useCompass() {
   const [status, setStatus] = useState<CompassStatus>('idle');
   const [heading, setHeading] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [tilt, setTilt] = useState<number | null>(null);
   const cleanup = useRef<(() => void) | null>(null);
   const headingRef = useRef<number | null>(null);
 
@@ -47,6 +57,7 @@ export function useCompass() {
     headingRef.current = null;
     setHeading(null);
     setAccuracy(null);
+    setTilt(null);
     setStatus('idle');
   }, []);
 
@@ -100,6 +111,8 @@ export function useCompass() {
       }
 
       gotValid = true;
+      const t = tiltFrom(e.beta, e.gamma);
+      setTilt(t === null ? null : Math.round(t));
       const corrected = (value + screenAngle() + 360) % 360;
       headingRef.current = smooth(headingRef.current, corrected);
       setHeading(headingRef.current);
@@ -121,5 +134,5 @@ export function useCompass() {
   // Komponent yopilganda sensor tinglovchilari olib tashlanadi
   useEffect(() => () => cleanup.current?.(), []);
 
-  return { status, heading, accuracy, start, stop };
+  return { status, heading, accuracy, tilt, start, stop };
 }

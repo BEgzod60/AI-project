@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>400 — Noto‘g‘ri so‘rov | Iymon</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #0b1714;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    /* Rasm atrofidagi bo'sh joy — o'sha rasmning xiralashtirilgan nusxasi */
+    .backdrop {
+      position: fixed;
+      inset: -40px;
+      background: url(/images/errors/400.webp) center / cover no-repeat;
+      filter: blur(28px) brightness(0.55);
+    }
+    /* Rasm nisbati (3:2) saqlanadi — tugmalar har qanday ekranda o'z joyida qoladi */
+    .frame {
+      position: relative;
+      width: min(100vw, 150vh);
+      flex-shrink: 0;
+      aspect-ratio: 3 / 2;
+    }
+    /* Tik ekran (telefon): faqat markaz — matn va tugmalar — ko'rinadigan qilib kattalashtiriladi */
+    @media (max-aspect-ratio: 1/1) {
+      .frame { width: min(270vw, 150vh); }
+    }
+    .frame img { display: block; width: 100%; height: 100%; }
+    /* Rasmdagi chizilgan tugmalar ustidagi haqiqiy tugmalar */
+    .hit {
+      position: absolute;
+      top: 67.2%;
+      height: 5.9%;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      cursor: pointer;
+      transition: box-shadow 0.2s, background-color 0.2s;
+    }
+    .hit:hover { background: rgba(255, 255, 255, 0.07); box-shadow: 0 0 24px rgba(16, 185, 129, 0.45); }
+    .hit:focus-visible { outline: 3px solid #fbbf24; outline-offset: 3px; }
+    .home { left: 33.7%; width: 19.8%; }
+    .retry { left: 54.8%; width: 11.9%; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <main class="frame">
+    <h1 class="sr">400 — Noto‘g‘ri so‘rov</h1>
+    <p class="sr">Yuborilgan so‘rovda xatolik mavjud. Iltimos, sahifani yangilang yoki to‘g‘ri havola bilan qayta urinib ko‘ring.</p>
+    <img src="/images/errors/400.webp" width="1536" height="1024" alt="" />
+    <a class="hit home" href="/" aria-label="Bosh sahifaga qaytish"></a>
+    <button class="hit retry" type="button" onclick="location.reload()" aria-label="Qayta urinish"></button>
+  </main>
+</body>
+</html>

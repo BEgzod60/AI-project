@@ -80,7 +80,8 @@ def fix_homoglyphs(text: str) -> str:
 
 
 def sentence_case(title: str) -> str:
-    t = title.strip().lower()
+    # Katta harfli sarlavhada undoshdan keyingi «Ye» — kirilldagi «Е» (BYeRUVChI -> BERUVCHI)
+    t = re.sub(r'(?<=[BCDFGHJKLMNPQRSTVXZ])Ye', 'E', title.strip()).lower()
     return t[:1].upper() + t[1:]
 
 

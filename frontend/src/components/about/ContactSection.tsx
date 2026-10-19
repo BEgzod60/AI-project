@@ -1,17 +1,18 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { ApiError } from '../../services/api';
 import { sendContactMessage } from '../../services/contactService';
+import { useT } from '../../i18n';
 
 /** Loyiha egasi bilan bog'lanish ma'lumotlari. Havolasi bo'sh bo'lganlari ko'rsatilmaydi. */
-const CONTACTS: { label: string; value: string; href: string; icon: ReactNode }[] = [
+const CONTACTS: { label: [string, string]; value: string; href: string; icon: ReactNode }[] = [
   {
-    label: 'Telefon',
+    label: ['Telefon', 'Телефон'],
     value: '+998 93 384 93 50',
     href: 'tel:+998933849350',
     icon: <path strokeLinecap="round" strokeLinejoin="round" d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />,
   },
   {
-    label: 'Email',
+    label: ['Email', 'Email'],
     value: 'begzodmavlonov250@gmail.com',
     href: 'mailto:begzodmavlonov250@gmail.com',
     icon: <><rect x="3" y="5" width="18" height="14" rx="2" /><path strokeLinecap="round" strokeLinejoin="round" d="m3 7 9 6 9-6" /></>,
@@ -37,13 +38,14 @@ export function ContactSection() {
   const [form, setForm] = useState({ name: '', contact: '', message: '', website: '' });
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const socials = SOCIALS.filter((s) => s.href);
+  const t = useT();
 
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (form.name.trim().length < 2 || form.message.trim().length < 5) {
-      setStatus({ kind: 'error', message: 'Ismingiz va xabaringizni yozing (xabar kamida 5 belgi).' });
+      setStatus({ kind: 'error', message: t('Ismingiz va xabaringizni yozing (xabar kamida 5 belgi).', 'Укажите имя и сообщение (не менее 5 символов).') });
       return;
     }
     setStatus({ kind: 'sending' });
@@ -52,26 +54,26 @@ export function ContactSection() {
       setStatus({ kind: 'sent' });
       setForm({ name: '', contact: '', message: '', website: '' });
     } catch (err) {
-      setStatus({ kind: 'error', message: err instanceof ApiError ? err.message : 'Xabar yuborilmadi — qayta urinib ko‘ring.' });
+      setStatus({ kind: 'error', message: err instanceof ApiError ? err.message : t('Xabar yuborilmadi — qayta urinib ko‘ring.', 'Сообщение не отправлено — попробуйте ещё раз.') });
     }
   };
 
   const input = 'mt-1 w-full rounded-xl bg-neutral-50 px-3.5 py-2.5 text-[15px] text-neutral-900 ring-1 ring-black/10 transition placeholder:text-neutral-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-neutral-800 dark:text-white dark:ring-white/10 dark:focus:bg-neutral-800';
 
   return (
-    <section className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" aria-labelledby="aloqa">
-      <div className="rounded-3xl bg-primary-900 p-6 text-white shadow-sm md:p-8">
-        <h2 id="aloqa" className="font-display text-2xl font-bold md:text-3xl">Aloqa</h2>
+    <section className="mt-5 grid gap-3 sm:gap-4 md:mt-10 md:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" aria-labelledby="aloqa">
+      <div className="min-w-0 rounded-2xl bg-primary-900 p-4 text-white shadow-sm sm:p-6 md:rounded-3xl md:p-8">
+        <h2 id="aloqa" className="font-display text-xl font-bold sm:text-2xl md:text-3xl">{t('Aloqa', 'Контакты')}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-white/75">
-          Taklif, xato yoki savolingiz bo‘lsa — yozing. Xabaringiz to‘g‘ridan-to‘g‘ri loyiha muallifiga yetib boradi.
+          {t('Taklif, xato yoki savolingiz bo‘lsa — yozing. Xabaringiz to‘g‘ridan-to‘g‘ri loyiha muallifiga yetib boradi.', 'Есть предложение, ошибка или вопрос — напишите. Сообщение придёт напрямую автору проекта.')}
         </p>
-        <ul className="mt-6 space-y-3">
+        <ul className="mt-4 space-y-2 sm:space-y-3 md:mt-6">
           {CONTACTS.map((c) => (
-            <li key={c.label}>
+            <li key={c.label[0]}>
               <a href={c.href} className="group flex items-center gap-3 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10 transition hover:bg-white/10 hover:ring-accent-400/50">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-400 text-primary-900"><Icon>{c.icon}</Icon></span>
                 <span className="min-w-0">
-                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/50">{c.label}</span>
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/50">{t(...c.label)}</span>
                   <span className="block truncate font-semibold">{c.value}</span>
                 </span>
               </a>
@@ -90,21 +92,21 @@ export function ContactSection() {
         )}
       </div>
 
-      <form onSubmit={submit} noValidate className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5 md:p-8 dark:bg-neutral-900 dark:ring-white/10">
-        <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-white">Xabar yuborish</h3>
+      <form onSubmit={submit} noValidate className="relative min-w-0 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 md:rounded-3xl md:p-8 dark:bg-neutral-900 dark:ring-white/10">
+        <h3 className="font-display text-xl font-bold text-neutral-900 dark:text-white">{t('Xabar yuborish', 'Отправить сообщение')}</h3>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-            Ismingiz <span className="text-rose-500">*</span>
-            <input value={form.name} onChange={set('name')} maxLength={LIMITS.name} autoComplete="name" required className={input} placeholder="Ismingiz" />
+            {t('Ismingiz', 'Ваше имя')} <span className="text-rose-500">*</span>
+            <input value={form.name} onChange={set('name')} maxLength={LIMITS.name} autoComplete="name" required className={input} placeholder={t('Ismingiz', 'Ваше имя')} />
           </label>
           <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-            Telefon yoki Telegram
-            <input value={form.contact} onChange={set('contact')} maxLength={LIMITS.contact} autoComplete="tel" className={input} placeholder="+998… yoki @username" />
+            {t('Telefon yoki Telegram', 'Телефон или Telegram')}
+            <input value={form.contact} onChange={set('contact')} maxLength={LIMITS.contact} autoComplete="tel" className={input} placeholder={t('+998… yoki @username', '+998… или @username')} />
           </label>
         </div>
         <label className="mt-4 block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-          Xabar <span className="text-rose-500">*</span>
-          <textarea value={form.message} onChange={set('message')} maxLength={LIMITS.message} rows={5} required className={`${input} resize-y`} placeholder="Taklif, xato yoki savolingiz…" />
+          {t('Xabar', 'Сообщение')} <span className="text-rose-500">*</span>
+          <textarea value={form.message} onChange={set('message')} maxLength={LIMITS.message} rows={5} required className={`${input} resize-y`} placeholder={t('Taklif, xato yoki savolingiz…', 'Предложение, ошибка или вопрос…')} />
           <span className="mt-1 block text-right text-[11px] font-normal tabular-nums text-neutral-400">{form.message.length} / {LIMITS.message}</span>
         </label>
         {/* Bot-tuzoq: ekranda ko'rinmaydi */}
@@ -114,14 +116,14 @@ export function ContactSection() {
           <button type="submit" disabled={status.kind === 'sending'}
             className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-xl bg-primary-600 px-5 font-bold text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-60">
             {status.kind === 'sending' ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden /> : null}
-            {status.kind === 'sending' ? 'Yuborilmoqda…' : 'Yuborish'}
+            {status.kind === 'sending' ? t('Yuborilmoqda…', 'Отправка…') : t('Yuborish', 'Отправить')}
           </button>
           <p role="status" aria-live="polite" className="text-sm">
-            {status.kind === 'sent' && <span className="font-semibold text-primary-700 dark:text-emerald-300">✓ Xabaringiz yuborildi. Rahmat!</span>}
+            {status.kind === 'sent' && <span className="font-semibold text-primary-700 dark:text-emerald-300">{t('✓ Xabaringiz yuborildi. Rahmat!', '✓ Сообщение отправлено. Спасибо!')}</span>}
             {status.kind === 'error' && <span className="text-rose-600 dark:text-rose-300">{status.message}</span>}
           </p>
         </div>
-        <p className="mt-4 text-[11px] text-neutral-500">Xabaringiz faqat loyiha muallifiga yuboriladi va boshqa maqsadda ishlatilmaydi.</p>
+        <p className="mt-4 text-[11px] text-neutral-500">{t('Xabaringiz faqat loyiha muallifiga yuboriladi va boshqa maqsadda ishlatilmaydi.', 'Сообщение получает только автор проекта, и оно не используется в других целях.')}</p>
       </form>
     </section>
   );

@@ -1,17 +1,19 @@
 import type { ReactNode } from 'react';
-import { WEEKDAYS_UZ } from '../../utils/constants';
-import { REGION_COORDS, hijriDate, qiblaBearing, type ClockNow } from './clock';
+import { weekdays } from '../../utils/constants';
+import { useI18n } from '../../i18n';
+import { cityLabel, hijriDate, qiblaBearing, type ClockNow } from './clock';
 
-function InfoCard({ icon, label, value, note }: { icon: ReactNode; label: string; value: string; note: string }) {
+function InfoCard({ icon, label, value, note, className = '' }: { icon: ReactNode; label: string; value: string; note: string; className?: string }) {
   return (
-    <div className="flex items-center gap-4 rounded-3xl bg-primary-900 p-5 text-white shadow-sm ring-1 ring-white/5">
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-accent-400 ring-1 ring-white/10">
+    // Telefonda — ixcham (2 ustun), sm+ — avvalgidek
+    <div className={`flex items-start gap-3 rounded-2xl bg-primary-900 p-3 text-white shadow-sm ring-1 ring-white/5 sm:items-center sm:gap-4 sm:rounded-3xl sm:p-5 ${className}`}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-accent-400 ring-1 ring-white/10 sm:h-14 sm:w-14 sm:rounded-2xl max-sm:[&>svg]:h-7 max-sm:[&>svg]:w-7">
         {icon}
       </span>
       <div className="min-w-0">
         <p className="text-xs text-white/65">{label}</p>
-        <p className="font-display text-xl font-bold tabular-nums">{value}</p>
-        <p className="text-xs leading-snug text-white/65">{note}</p>
+        <p className="font-display text-base font-bold leading-tight tabular-nums sm:text-xl">{value}</p>
+        <p className="line-clamp-2 text-[11px] leading-snug text-white/65 sm:line-clamp-none sm:text-xs sm:leading-snug">{note}</p>
       </div>
     </div>
   );
@@ -33,17 +35,18 @@ function Compass({ bearing }: { bearing: number }) {
 }
 
 export function InfoCards({ region, now }: { region: string; now: ClockNow }) {
+  const { t, lang } = useI18n();
   const bearing = qiblaBearing(region);
-  const hijri = hijriDate(now.date);
+  const hijri = hijriDate(now.date, lang);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-1">
       {bearing !== null && (
         <InfoCard
           icon={<Compass bearing={bearing} />}
-          label="Qibla yo‘nalishi"
+          label={t('Qibla yo‘nalishi', 'Направление киблы')}
           value={`${Math.round(bearing)}°`}
-          note={`${REGION_COORDS[region]?.city ?? region} uchun, shimoldan soat mili bo‘yicha`}
+          note={t(`${cityLabel(region, lang)} uchun, shimoldan soat mili bo‘yicha`, `Для г. ${cityLabel(region, lang)}, от севера по часовой стрелке`)}
         />
       )}
       <InfoCard
@@ -53,9 +56,10 @@ export function InfoCards({ region, now }: { region: string; now: ClockNow }) {
             <path strokeLinecap="round" d="M12 7v5l3 2" />
           </svg>
         }
-        label="Hozirgi vaqt"
+        className="order-last col-span-2 sm:order-none sm:col-span-1"
+        label={t('Hozirgi vaqt', 'Текущее время')}
         value={now.time}
-        note="Toshkent vaqti (UTC+5)"
+        note={t('Toshkent vaqti (UTC+5)', 'Ташкентское время (UTC+5)')}
       />
       {hijri && (
         <InfoCard
@@ -64,9 +68,9 @@ export function InfoCards({ region, now }: { region: string; now: ClockNow }) {
               <path strokeLinejoin="round" d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z" />
             </svg>
           }
-          label="Hijriy sana"
+          label={t('Hijriy sana', 'Дата по хиджре')}
           value={hijri}
-          note={`${WEEKDAYS_UZ[now.weekday]} · Umm al-Quro taqvimi, ±1 kun farq bo‘lishi mumkin`}
+          note={`${weekdays(lang)[now.weekday]} · ${t('Umm al-Quro taqvimi, ±1 kun farq bo‘lishi mumkin', 'календарь Умм аль-Кура, возможна разница ±1 день')}`}
         />
       )}
     </div>

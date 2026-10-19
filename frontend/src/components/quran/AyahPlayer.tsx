@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AyahAudio } from '../../types/quran';
+import { useT } from '../../i18n';
 
 const RECITER_KEY = 'quran-reciter';
 
@@ -31,6 +32,7 @@ function Avatar({ name, active = false }: { name: string; active?: boolean }) {
 }
 
 function ReciterPicker({ reciters, value, onChange }: { reciters: AyahAudio['reciters']; value: string; onChange: (id: string) => void }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = reciters.find((r) => r.id === value) ?? reciters[0];
@@ -57,13 +59,13 @@ function ReciterPicker({ reciters, value, onChange }: { reciters: AyahAudio['rec
       >
         <Avatar name={selected.name} active />
         <span className="min-w-0 leading-tight">
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Qori</span>
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-neutral-400">{t('Qori', 'Чтец')}</span>
           <span className="block truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">{selected.name}</span>
         </span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
-        <ul role="listbox" aria-label="Qorini tanlang" className="absolute right-0 z-20 mt-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/10 dark:bg-neutral-800 dark:ring-white/15">
+        <ul role="listbox" aria-label={t('Qorini tanlang', 'Выберите чтеца')} className="absolute right-0 z-20 mt-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/10 dark:bg-neutral-800 dark:ring-white/15">
           {reciters.map((r) => {
             const active = r.id === selected.id;
             return (
@@ -98,6 +100,7 @@ interface Props {
 }
 
 export function AyahPlayer({ audio, surah, versesCount, current, onCurrentChange, request }: Props) {
+  const t = useT();
   const ref = useRef<HTMLAudioElement>(null);
   const [reciter, setReciter] = useState(() => readReciter(audio.reciters));
   const [playing, setPlaying] = useState(false);
@@ -168,11 +171,11 @@ export function AyahPlayer({ audio, surah, versesCount, current, onCurrentChange
     play(Math.min(versesCount, Math.max(first, base + delta)));
   };
 
-  const label = current === null ? 'Tinglash' : current === 0 ? 'Basmala' : `${current}-oyat`;
+  const label = current === null ? t('Tinglash', 'Слушать') : current === 0 ? t('Basmala', 'Басмала') : t(`${current}-oyat`, `Аят ${current}`);
   const btn = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-black/10 transition hover:ring-primary-500/40 disabled:opacity-40 dark:ring-white/15';
 
   return (
-    <div className="rounded-2xl bg-neutral-50 p-3 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+    <div className="rounded-2xl bg-neutral-50 p-2.5 ring-1 ring-black/5 lg:p-3 dark:bg-white/5 dark:ring-white/10">
       <audio
         ref={ref}
         preload="none"
@@ -187,29 +190,30 @@ export function AyahPlayer({ audio, surah, versesCount, current, onCurrentChange
         }}
       />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => step(-1)} disabled={current === null || current <= first} aria-label="Oldingi oyat" className={btn}>
+        <button type="button" onClick={() => step(-1)} disabled={current === null || current <= first} aria-label={t('Oldingi oyat', 'Предыдущий аят')} className={btn}>
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden><path d="M6 5h2v14H6zM20 5v14L9 12z" /></svg>
         </button>
-        <button type="button" onClick={toggle} aria-label={playing ? 'To‘xtatish' : 'Tinglash'} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-700 text-white shadow-sm transition hover:bg-primary-800">
+        <button type="button" onClick={toggle} aria-label={playing ? t('To‘xtatish', 'Пауза') : t('Tinglash', 'Слушать')} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-700 text-white shadow-sm transition hover:bg-primary-800">
           {playing
             ? <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden><path d="M7 5h4v14H7zM13 5h4v14h-4z" /></svg>
             : <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-5 w-5" aria-hidden><path d="M7 4v16l13-8z" /></svg>}
         </button>
-        <button type="button" onClick={() => step(1)} disabled={current !== null && current >= versesCount} aria-label="Keyingi oyat" className={btn}>
+        <button type="button" onClick={() => step(1)} disabled={current !== null && current >= versesCount} aria-label={t('Keyingi oyat', 'Следующий аят')} className={btn}>
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden><path d="M16 5h2v14h-2zM4 5v14l11-7z" /></svg>
         </button>
-        <button type="button" onClick={() => setRepeat((v) => !v)} aria-pressed={repeat} title="Oyatni takrorlash (yodlash uchun)" className={`${btn} ${repeat ? 'bg-primary-700 text-white ring-primary-700' : ''}`}>
+        <button type="button" onClick={() => setRepeat((v) => !v)} aria-pressed={repeat} title={t('Oyatni takrorlash (yodlash uchun)', 'Повторять аят (для заучивания)')} className={`${btn} ${repeat ? 'bg-primary-700 text-white ring-primary-700' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4" /></svg>
         </button>
         <span className="min-w-[4.5rem] text-sm font-semibold tabular-nums text-neutral-700 dark:text-neutral-200" aria-live="polite">{label}</span>
         {current !== null && (
-          <button type="button" onClick={stop} className="text-xs font-semibold text-neutral-500 underline">To‘xtatish</button>
+          <button type="button" onClick={stop} className="text-xs font-semibold text-neutral-500 underline">{t('To‘xtatish', 'Стоп')}</button>
         )}
         <ReciterPicker reciters={audio.reciters} value={reciter} onChange={changeReciter} />
       </div>
-      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">Audio yuklanmadi. Internetni tekshiring yoki boshqa qorini tanlang.</p>}
-      <p className="mt-2 text-xs text-neutral-500">
-        Oyatma-oyat tilovat · Manba: <a href={audio.source_url} target="_blank" rel="noopener noreferrer" className="underline">{audio.source_title}</a>
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{t('Audio yuklanmadi. Internetni tekshiring yoki boshqa qorini tanlang.', 'Аудио не загрузилось. Проверьте интернет или выберите другого чтеца.')}</p>}
+      {/* Telefonda pleer yopishib turadi — manba qatori pleer ostida alohida ko'rsatiladi (SurahView) */}
+      <p className="mt-2 hidden text-xs text-neutral-500 lg:block">
+        {t('Oyatma-oyat tilovat', 'Чтение по аятам')} · {t('Manba', 'Источник')}: <a href={audio.source_url} target="_blank" rel="noopener noreferrer" className="underline">{audio.source_title}</a>
       </p>
     </div>
   );

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { getAudio } from '../../services/learningService';
 import type { AudioDescriptor } from '../../types/learning';
+import { useT } from '../../i18n';
 
 const SPEEDS = [0.75, 1, 1.25, 1.5];
-const UNAVAILABLE = 'Audio hozircha mavjud emas';
+const UNAVAILABLE: [string, string] = ['Audio hozircha mavjud emas', 'Аудио пока недоступно'];
 
 /** Sahifada bir vaqtda faqat bitta audio o'ynasin */
 let currentlyPlaying: HTMLAudioElement | null = null;
@@ -25,6 +26,7 @@ interface AudioPlayerProps {
 }
 
 export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
+  const t = useT();
   const audioRef = useRef<HTMLAudioElement>(null);
   // Tanzil'da faqat oyatma-oyat bor — birinchi mavjud rejim tanlanadi
   const [mode, setMode] = useState<Mode>(audio?.modes[0] ?? 'full');
@@ -76,7 +78,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5 6 9H3v6h3l5 4V5ZM22 9l-6 6M16 9l6 6" />
           </svg>
-          {UNAVAILABLE}
+          {t(...UNAVAILABLE)}
         </p>
         {reference && (
           <a
@@ -152,7 +154,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
   return (
     <div className="rounded-xl bg-neutral-50 p-3 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
       {audio.modes.includes('verses') && audio.modes.includes('full') && (
-        <div className="mb-2 flex gap-1 rounded-lg bg-white p-0.5 text-[11px] font-semibold ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10" role="group" aria-label="Tinglash usuli">
+        <div className="mb-2 flex gap-1 rounded-lg bg-white p-0.5 text-[11px] font-semibold ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10" role="group" aria-label={t('Tinglash usuli', 'Режим прослушивания')}>
           {(['full', 'verses'] as Mode[]).map((m) => (
             <button
               key={m}
@@ -161,7 +163,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
               onClick={() => switchMode(m)}
               className={`flex-1 rounded-md py-1 transition ${mode === m ? 'bg-primary-600 text-white' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-white/10'}`}
             >
-              {m === 'full' ? 'Butun sura' : 'Oyatma-oyat'}
+              {m === 'full' ? t('Butun sura', 'Вся сура') : t('Oyatma-oyat', 'По аятам')}
             </button>
           ))}
         </div>
@@ -172,7 +174,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
           type="button"
           onClick={toggle}
           disabled={status === 'loading'}
-          aria-label={`${playing ? 'To‘xtatish' : 'Tinglash'}: ${label}`}
+          aria-label={`${playing ? t('To‘xtatish', 'Пауза') : t('Tinglash', 'Слушать')}: ${label}`}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white shadow transition hover:bg-primary-700 disabled:opacity-60"
         >
           {status === 'loading' ? (
@@ -197,13 +199,13 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
               if (el) el.currentTime = Number(e.target.value);
               setTime(Number(e.target.value));
             }}
-            aria-label="Audio o‘rni"
+            aria-label={t('Audio o‘rni', 'Позиция аудио')}
             className="h-1.5 w-full cursor-pointer accent-primary-600 disabled:cursor-default"
           />
           <div className="mt-0.5 flex justify-between text-[10px] tabular-nums text-neutral-500">
             <span>{fmt(time)}</span>
             <span>
-              {mode === 'verses' && verses ? `${verses[verseIdx]?.verse ?? ''}-oyat · ` : ''}
+              {mode === 'verses' && verses ? `${t(`${verses[verseIdx]?.verse ?? ''}-oyat`, `аят ${verses[verseIdx]?.verse ?? ''}`)} · ` : ''}
               {fmt(duration)}
             </span>
           </div>
@@ -220,7 +222,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
         </span>
         <div
           role="radiogroup"
-          aria-label="Tinglash tezligi"
+          aria-label={t('Tinglash tezligi', 'Скорость')}
           className="grid flex-1 grid-cols-4 gap-0.5 rounded-full bg-white p-0.5 ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10"
         >
           {SPEEDS.map((s) => {
@@ -249,7 +251,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
       </div>
 
       {mode === 'verses' && verses && verses.length > 1 && (
-        <div className="mt-2 flex max-h-20 flex-wrap gap-1 overflow-y-auto" aria-label="Oyatlar">
+        <div className="mt-2 flex max-h-20 flex-wrap gap-1 overflow-y-auto" aria-label={t('Oyatlar', 'Аяты')}>
           {verses.map((v, i) => (
             <button
               key={v.verse}
@@ -268,8 +270,8 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
 
       {status === 'error' && (
         <p className="mt-2 text-xs text-rose-600 dark:text-rose-300">
-          {UNAVAILABLE}.{' '}
-          <button type="button" onClick={() => void load(mode)} className="font-semibold underline">Qayta urinish</button>
+          {t(...UNAVAILABLE)}.{' '}
+          <button type="button" onClick={() => void load(mode)} className="font-semibold underline">{t('Qayta urinish', 'Повторить')}</button>
         </p>
       )}
 
@@ -279,7 +281,7 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
       <p className="mt-1 break-words text-[10px] leading-snug text-neutral-500">
         {audio.reciter && <>Qori: {audio.reciter} · </>}
         <a href={audio.source_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-600">
-          {audio.provider === 'tanzil' ? 'Manba: Tanzil Project (tanzil.net)' : audio.provider === 'muslim_uz' ? 'Manba: muslim.uz' : 'Manba'}
+          {t('Manba', 'Источник')}{audio.provider === 'tanzil' ? ': Tanzil Project (tanzil.net)' : audio.provider === 'muslim_uz' ? ': muslim.uz' : ''}
         </a>
       </p>
 

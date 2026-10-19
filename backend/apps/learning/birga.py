@@ -17,11 +17,15 @@ QUNUT = 'qunut'
 # O'tirib o'qiladiganlar — rasm «o'tirish» bo'lishi kerak
 SITTING_RECITATIONS = {'tashahhud', 'salavotlar', 'robbana'}
 
+# Ruku' va sajdada tasbeh kamida uch marta aytiladi («Subhana Robbiyal-’aziym / a’la» ×3) —
+# shoshirmaslik uchun eng kami 8 soniya (frontend ham shundan kam qilmaydi).
+TASBIH_TIMING = (8, 12)
+JALSA_TIMING = (3, 5)
 # Qadam nomidagi kalit so'z → (eng kam, eng ko'p) soniya. Tartib muhim: 'jalsa' 'sajda'dan oldin.
 POSTURE_TIMING = [
-    ('jalsa', (7, 11)),   # jalsa + ikkinchi sajda
-    ('sajda', (4, 6)),
-    ('ruku', (4, 6)),
+    ('jalsa', (JALSA_TIMING[0] + TASBIH_TIMING[0], JALSA_TIMING[1] + TASBIH_TIMING[1])),   # jalsa + ikkinchi sajda
+    ('sajda', TASBIH_TIMING),
+    ('ruku', TASBIH_TIMING),
     ('qavma', (3, 5)),
 ]
 ACTION_TIMING = (4, 6)
@@ -191,9 +195,9 @@ def _split_jalsa(step, sajda_step):
     # Ikkinchi sajdada ham birinchi sajdadagi tasbeh aytiladi (Sajda qadami matnidan)
     tasbeh = [z for z in extract_zikr(sajda_step.text if sajda_step else '') if z['times'] > 1]
     return [
-        {'title': 'Jalsa', 'text': ' '.join(first), 'images': images[:1], 'timing': (3, 5),
+        {'title': 'Jalsa', 'text': ' '.join(first), 'images': images[:1], 'timing': JALSA_TIMING,
          'zikr': extract_zikr(' '.join(first))},
-        {'title': 'Ikkinchi sajda', 'text': ' '.join(second), 'images': sajda_images[-1:], 'timing': (4, 6),
+        {'title': 'Ikkinchi sajda', 'text': ' '.join(second), 'images': sajda_images[-1:], 'timing': TASBIH_TIMING,
          'zikr': extract_zikr(' '.join(second)) + tasbeh},
     ]
 
@@ -515,3 +519,79 @@ def add_after_farz(stages, rakats):
         'zikr': [{'text': 'Amiyn', 'meaning': '', 'times': 1, 'label': 'Duodan so‘ng'}],
     })
 
+
+
+# --- Ruscha interfeys (lang=ru) ----------------------------------------------------------------
+# Faqat yorliqlar va bosqich nomlari o'giriladi (amal nomlari). Zikr/sura matni (lotincha o'qilishi)
+# o'zgarmaydi; o'zbekcha ma'no va qadam tafsiloti diniy mazmun — o'zimizdan tarjima qilinmaydi.
+TITLES_RU = {
+    'Niyat': 'Намерение (ният)', 'Takbiri tahrima': 'Начальный такбир', 'Qiyom va Sano': 'Стояние и «Сана»',
+    'Qiroat': 'Чтение (кираат)', 'Ruku’': 'Поясной поклон (руку)', 'Qavma (tik turish)': 'Выпрямление (кавма)',
+    'Sajda': 'Земной поклон (суджуд)', 'Jalsa': 'Сидение между суджудами', 'Ikkinchi sajda': 'Второй суджуд',
+    'Jalsa va ikkinchi sajda': 'Сидение и второй суджуд', 'Ikkinchi rakat': 'Второй ракаат',
+    'Birinchi qa’da': 'Первое сидение (каада)', 'Avvalgi qa’da': 'Первое сидение (каада)',
+    'Uchinchi rakat': 'Третий ракаат', 'To‘rtinchi rakat': 'Четвёртый ракаат',
+    'Qa’dai oxir va salom': 'Последнее сидение и салям', 'Oxirgi qa’da va salom': 'Последнее сидение и салям',
+    'Qa’da (tashahhud)': 'Сидение (ташаххуд)', 'Salom': 'Салям', 'Uchinchi rakat va Qunut': 'Третий ракаат и кунут',
+    'Ruku’, sajda, qa’da va salom': 'Руку, суджуд, сидение и салям', 'Zam sura': 'Дополнительная сура',
+    'Amiyn': 'Амин', 'O‘ngga salom': 'Салям вправо', 'Chapga salom': 'Салям влево',
+    'Qunut takbiri': 'Такбир перед кунутом', 'Namozdan so‘ng': 'После намаза',
+}
+LABELS_RU = {
+    'Borishda': 'При переходе', 'Ruku’da': 'В руку', 'Sajdada': 'В суджуде', 'Turishda': 'При подъёме',
+    'Tik turgach': 'Выпрямившись', 'Niyat mazmuni': 'Смысл намерения', 'Takbir': 'Такбир',
+    'Avval o‘ngga, so‘ng chapga': 'Сначала вправо, затем влево', 'O‘ng yelkaga qarab': 'Глядя на правое плечо',
+    'Chap yelkaga qarab': 'Глядя на левое плечо', 'Ohista': 'Тихо', 'Salomdan so‘ng': 'После саляма',
+    'Bir marta': 'Один раз', 'Duodan so‘ng': 'После дуа',
+    'Qo‘llar quloq to‘g‘risigacha ko‘tariladi': 'Руки поднимаются до уровня ушей',
+}
+RECITATIONS_RU = {
+    'sano': 'Сана', 'auzu': 'Таъаввуз («А‘узу биллях»)', 'tashahhud': 'Ташаххуд («Ат-тахият»)',
+    'salavotlar': 'Салаваты', 'robbana': 'Дуа «Раббана»', 'qunut': 'Дуа «Кунут»', 'istigfor': 'Истигфар',
+    'antas-salom': 'Дуа после намаза', 'oyatul-kursiy': 'Аят аль-Курси',
+}
+SOURCE_GROUPS_RU = {
+    'Namoz tartibi va zikrlar': 'Порядок намаза и зикры',
+    'Sura va duolar (lotincha o‘qilishi va ma’nosi)': 'Суры и дуа (чтение латиницей и смысл)',
+    'Arabcha matn (ovozni solishtirish uchun)': 'Арабский текст (для сверки голоса)',
+}
+SAFETY_NOTICE_RU = (
+    'В ханафитском мазхабе вопрос чтения с экрана или из мусхафа во время намаза имеет особое решение. '
+    'Прежде чем использовать этот режим в настоящем намазе, посоветуйтесь с имамом мечети или специалистом. '
+    'Приложение не руководит намазом и не подтверждает ваше чтение: таймер — лишь примерное время, '
+    'а распознавание голоса — вспомогательный сигнал.'
+)
+REASONS_RU = {
+    'Bu namoz ma’lumotlari hali tasdiqlanmagan.': 'Данные этого намаза ещё не подтверждены.',
+    'Bu namoz uchun bosqichma-bosqich ketma-ketlik hozircha mavjud emas.': 'Пошаговая последовательность для этого намаза пока недоступна.',
+}
+
+
+def localize(payload, lang):
+    """lang=ru: yorliqlarni ruschaga o'giradi (diniy matn o'zgarmaydi)."""
+    if lang != 'ru':
+        return payload
+    from apps.quran.models import Surah
+    names = dict(Surah.objects.values_list('number', 'name_simple'))
+    for st in payload['stages']:
+        st['title'] = TITLES_RU.get(st['title'], st['title'])
+        for z in st['zikr']:
+            z['label'] = LABELS_RU.get(z['label'], z['label'])
+            z['meaning'] = ''  # o'zbekcha ma'no — ruscha interfeysda ko'rsatilmaydi
+    for slug, rec in payload['recitations'].items():
+        if rec.get('surah_number'):
+            rec['name'] = f"Сура «{names.get(rec['surah_number'], rec['name'])}»"
+        else:
+            rec['name'] = RECITATIONS_RU.get(slug, rec['name'])
+        rec['meaning'] = ''
+    owner_ru = 'Указание автора проекта (в источнике отдельно не описано)'
+    for st in payload['stages']:
+        if st.get('source_title') == OWNER_NOTE:
+            st['source_title'] = owner_ru
+    for src in payload.get('sources', []):
+        src['group'] = SOURCE_GROUPS_RU.get(src['group'], src['group'])
+        if src.get('title') == OWNER_NOTE:
+            src['title'] = owner_ru
+    payload['safety_notice'] = SAFETY_NOTICE_RU
+    payload['reason'] = REASONS_RU.get(payload['reason'], payload['reason'])
+    return payload

@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { BottomNav } from './BottomNav';
 import { DEFAULT_REGION, REGIONS, REGION_STORAGE_KEY } from '../../utils/constants';
+import { useT } from '../../i18n';
 
 export function MainLayout() {
+  const t = useT();
   const [region, setRegion] = useState<string>(() => {
     if (typeof window === 'undefined') return DEFAULT_REGION;
     const stored = window.localStorage.getItem(REGION_STORAGE_KEY);
@@ -27,6 +30,16 @@ export function MainLayout() {
     return () => document.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
+  // Mobil menyu ochiqligida orqadagi sahifa surilmaydi
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
+
   // Hudud tanlovni localStorage'da saqlash
   useEffect(() => {
     window.localStorage.setItem(REGION_STORAGE_KEY, region);
@@ -35,16 +48,18 @@ export function MainLayout() {
   return (
     <div className="flex min-h-screen">
       {/* Mobil qatlam: menyuga bosilganda fon */}
-      {menuOpen && (
-        <button
-          type="button"
-          aria-label="Menyuni yopish"
-          onClick={() => setMenuOpen(false)}
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-        />
-      )}
+      <button
+        type="button"
+        tabIndex={menuOpen ? 0 : -1}
+        aria-hidden={!menuOpen}
+        aria-label={t('Menyuni yopish', 'Закрыть меню')}
+        onClick={() => setMenuOpen(false)}
+        className={`fixed inset-0 z-[35] bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden ${
+          menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      />
 
-      <Sidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} />
+      <Sidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} onClose={() => setMenuOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
@@ -52,10 +67,12 @@ export function MainLayout() {
           onRegionChange={setRegion}
           onMenuClick={() => setMenuOpen(true)}
         />
-        <main className="flex-1">
+        <main className="pb-bottom-nav flex-1">
           <Outlet context={{ region, setRegion }} />
         </main>
       </div>
+
+      <BottomNav menuOpen={menuOpen} onMenuClick={() => setMenuOpen((o) => !o)} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.namoz.urls import iymon_urlpatterns
+from apps.namoz.urls import iymon_urlpatterns, roza_urlpatterns, zakot_urlpatterns
 from apps.namoz.views import search_view
 from apps.developer.urls import dev_urlpatterns, v1_urlpatterns
 
@@ -13,6 +13,8 @@ urlpatterns = [
     path('api/prayer-times/', include('apps.prayer_times.urls')),
     path('api/namoz/', include('apps.namoz.urls')),
     path('api/iymon/', include(iymon_urlpatterns)),
+    path('api/zakot/', include(zakot_urlpatterns)),
+    path('api/roza/', include(roza_urlpatterns)),
     path('api/search/', search_view, name='search'),
     path('api/namoz-organish/', include('apps.learning.urls')),
     path('api/ai/', include('apps.ai.urls')),

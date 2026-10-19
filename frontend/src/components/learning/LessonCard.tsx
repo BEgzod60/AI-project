@@ -1,8 +1,10 @@
+import { prayerName, rakatLabel } from '../../utils/prayerNames';
 import { Link } from 'react-router-dom';
 import type { PrayerCategory, PrayerCategoryIcon, RakatKind } from '../../types/learning';
 import { PrayerIcon } from '../prayerTimes/PrayerIcons';
 import { TopicIconSvg } from '../namoz/NamozIcons';
 import { ArrowRightIcon } from '../common/Icons';
+import { useI18n } from '../../i18n';
 
 const PRAYER_ICONS = new Set(['bomdod', 'peshin', 'asr', 'shom', 'xufton']);
 
@@ -23,16 +25,17 @@ const KIND_STYLE: Record<RakatKind, string> = {
 
 /** Rakatlar: tuzilgan bo'lsa rangli belgilar, aks holda manbadagi matn */
 export function RakatChips({ category, size = 'sm' }: { category: PrayerCategory; size?: 'sm' | 'md' }) {
+  const { t, lang } = useI18n();
   if (!category.rakats) return null;
   const pad = size === 'md' ? 'px-3 py-1.5 text-sm' : 'px-2.5 py-1 text-[11px]';
   if (!category.rakat_breakdown.length) {
     return <p className={`inline-block rounded-full bg-white/10 font-semibold text-white ring-1 ring-white/20 ${pad}`}>{category.rakats}</p>;
   }
   return (
-    <ul className="flex flex-wrap gap-1.5" aria-label={`Rakatlar: ${category.rakats}`}>
+    <ul className="flex flex-wrap gap-1.5" aria-label={`${t('Rakatlar', 'Ракааты')}: ${category.rakats}`}>
       {category.rakat_breakdown.map((r, i) => (
         <li key={i} className={`rounded-full font-semibold tabular-nums ${pad} ${KIND_STYLE[r.kind]}`}>
-          {r.count} rakat {r.kind}
+          {rakatLabel(r.count, r.kind, lang)}
         </li>
       ))}
     </ul>
@@ -45,11 +48,13 @@ const BACKDROP = (image: string) =>
 
 export function LessonCard({ category }: { category: PrayerCategory }) {
   const verified = category.review_status === 'published';
+  const { t, lang } = useI18n();
 
   return (
     <Link
       to={`/namoz-organish/${category.slug}`}
-      className="group relative flex h-full min-h-[250px] flex-col overflow-hidden rounded-3xl bg-primary-900 p-5 text-white shadow-sm ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary-900/30 hover:ring-accent-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
+      // Telefon/planshet: ixcham 2–3 ustunli karta; desktop — avvalgi katta karta
+      className="tap-press group relative flex h-full min-h-[170px] flex-col overflow-hidden rounded-2xl bg-primary-900 p-3.5 text-white lg:min-h-[250px] lg:rounded-3xl lg:p-5 shadow-sm ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary-900/30 hover:ring-accent-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
     >
       {category.image && (
         <div
@@ -59,33 +64,33 @@ export function LessonCard({ category }: { category: PrayerCategory }) {
         />
       )}
 
-      <div className="relative flex items-center gap-3">
-        <span className="font-display text-xl font-bold tabular-nums text-accent-400">
+      <div className="relative flex flex-wrap items-center gap-2 lg:flex-nowrap lg:gap-3">
+        <span className="font-display text-base font-bold tabular-nums text-accent-400 lg:text-xl">
           {String(category.number).padStart(2, '0')}
         </span>
         <span className="text-accent-400">
-          <CategoryIcon icon={category.icon} />
+          <CategoryIcon icon={category.icon} className="h-5 w-5 lg:h-7 lg:w-7" />
         </span>
         {!verified && (
-          <span className="ml-auto rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
-            Tekshirilmoqda
+          <span className="rounded-full lg:ml-auto bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-300/40">
+            {t('Tekshirilmoqda', 'На проверке')}
           </span>
         )}
       </div>
 
-      <h3 className="relative mt-3 font-display text-xl font-bold">{category.name}</h3>
-      <p className="relative mt-1 max-w-[70%] text-sm leading-relaxed text-white/75">
-        {verified ? category.description : "Ma'lumot manba bilan tekshirilmoqda."}
+      <h3 className="relative mt-2 font-display text-base font-bold leading-snug lg:mt-3 lg:text-xl">{prayerName(category.slug, category.name, lang)}</h3>
+      <p className="relative mt-1 line-clamp-2 text-[13px] leading-snug text-white/75 lg:line-clamp-none lg:max-w-[70%] lg:text-sm lg:leading-relaxed">
+        {verified ? category.description : t('Ma’lumot manba bilan tekshirilmoqda.', 'Данные проверяются по источнику.')}
       </p>
       {verified && (
-        <div className="relative mt-3 max-w-[75%]">
+        <div className="relative mt-2 lg:mt-3 lg:max-w-[75%]">
           <RakatChips category={category} />
         </div>
       )}
 
-      <div className="relative mt-auto pt-5">
+      <div className="relative mt-auto hidden pt-5 lg:block">
         <span className="inline-flex items-center gap-2 rounded-xl bg-primary-500 px-4 py-2 text-sm font-bold text-white shadow-md shadow-black/20 transition group-hover:bg-accent-400 group-hover:text-primary-900">
-          O‘rganish
+          {t('O‘rganish', 'Изучить')}
           <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </span>
       </div>

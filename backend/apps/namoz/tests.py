@@ -218,6 +218,45 @@ class StripArabicTests(TestCase):
         self.assertNotRegex(html, '[؀-ۿ]')
         self.assertIn('Matn.', html)
 
+    def test_import_zakot_fixes_caps_ye_and_links_source(self):
+        import tempfile
+        from pathlib import Path
+
+        from django.core.management import call_command
+
+        topics = list(Topic.objects.filter(category='zakot').order_by('number'))
+        self.assertEqual(len(topics), 10)
+        # Manbadagi lotin sarlavhasi: «Е» -> «Ye» (BYeRUVChI)
+        titles = {10: 'ZAKOT BYeRUVChINING VAZIFALARI'}
+        page = MuslimUzImportTests._page(
+            [[(f'block{98 + t.number}', titles.get(t.number, t.title.upper()), '<p>Matn.</p>')] for t in topics]
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp, 'p.html')
+            f.write_text(page, encoding='utf-8')
+            call_command('import_muslimuz', category='zakot', uz_file=str(f), oz_file=str(f), stdout=open('/dev/null', 'w'))
+        section = self.client.get('/api/zakot/topics/zakot-beruvchining-vazifalari/').json()['sections'][0]
+        self.assertEqual(section['title'], 'Zakot beruvchining vazifalari')
+        self.assertEqual(section['sources'][0]['url'], 'https://muslim.uz/uz/c/zakot#block108')
+
+    def test_import_roza_links_fasting_page(self):
+        import tempfile
+        from pathlib import Path
+
+        from django.core.management import call_command
+
+        topics = list(Topic.objects.filter(category='roza').order_by('number'))
+        self.assertEqual([t.slug for t in topics], ['roza-qanday-ibodat', 'rozaning-darajalari'])
+        page = MuslimUzImportTests._page(
+            [[(f'block{208 + t.number}', t.title.upper(), '<p>Matn.</p>')] for t in topics]
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp, 'p.html')
+            f.write_text(page, encoding='utf-8')
+            call_command('import_muslimuz', category='roza', uz_file=str(f), oz_file=str(f), stdout=open('/dev/null', 'w'))
+        section = self.client.get('/api/roza/topics/rozaning-darajalari/').json()['sections'][0]
+        self.assertEqual(section['sources'][0]['url'], 'https://muslim.uz/uz/c/fasting#block210')
+
 
 class SearchTests(TestCase):
     def setUp(self):

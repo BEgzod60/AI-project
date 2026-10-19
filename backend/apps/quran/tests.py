@@ -32,6 +32,16 @@ class QuranApiTests(TestCase):
         self.assertFalse(by_n[1]['has_audio'])
         self.assertIn('Muhammad Sodiq', data['sources']['translation'])
 
+    def test_russian_meaning_and_fallback(self):
+        Ayah.objects.filter(surah=self.fotiha, number=1).update(translation_ru='Во имя Аллаха')
+        ru = self.client.get('/api/quran/surahs/1/?lang=ru').json()
+        self.assertEqual(ru['ayahs'][0]['meaning'], 'Во имя Аллаха')
+        self.assertEqual(ru['revelation'], 'Мекканская')
+        self.assertIn('Кулиев', ru['sources']['translation'])
+        Ayah.objects.filter(surah=self.fotiha, number=1).update(translation_ru='')
+        self.assertEqual(self.client.get('/api/quran/surahs/1/?lang=ru').json()['ayahs'][0]['meaning'], 'Mehribon...')
+        self.assertEqual(self.client.get('/api/quran/surahs/1/').json()['revelation'], 'Makkiy')
+
     def test_detail_and_404(self):
         detail = self.client.get('/api/quran/surahs/1/').json()
         self.assertEqual(detail['ayahs'], [{'number': 1, 'arabic': 'بِسْمِ', 'meaning': 'Mehribon...'}])

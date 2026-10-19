@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { SEARCH_PAGES, resultHref, searchContent } from '../../services/searchService';
+import { CATEGORY_LABEL, searchPages, resultHref, searchContent } from '../../services/searchService';
 import type { SearchResult } from '../../types/search';
 import { Highlight, normalizeSearch } from '../search/Highlight';
 import { TopicIconSvg } from '../namoz/NamozIcons';
+import { useT } from '../../i18n';
 
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 250;
@@ -33,6 +34,7 @@ export function SearchBar() {
   const [active, setActive] = useState(-1);
 
   const trimmed = query.trim();
+  const t = useT();
 
   // Ctrl+K — qidiruvga fokus
   useEffect(() => {
@@ -94,18 +96,18 @@ export function SearchBar() {
   const normQuery = normalizeSearch(trimmed);
   const pageItems: Item[] =
     trimmed.length >= MIN_CHARS
-      ? SEARCH_PAGES.filter((p) => normalizeSearch(`${p.label} ${p.keywords}`).includes(normQuery)).map((p) => ({
+      ? searchPages().filter((p) => normalizeSearch(`${p.label} ${p.keywords}`).includes(normQuery)).map((p) => ({
           key: `page:${p.to}`,
           href: p.to,
           title: p.label,
-          subtitle: 'Sahifa',
+          subtitle: t('Sahifa', 'Страница'),
         }))
       : [];
   const resultItems: Item[] = results.slice(0, MAX_SUGGESTIONS).map((r) => ({
     key: `${r.type}:${r.category}:${r.slug}:${r.section_id ?? ''}`,
     href: resultHref(r),
     title: r.title,
-    subtitle: `${r.category === 'namoz' ? 'Namoz' : 'Iymon'} · ${r.type === 'topic' ? 'mavzu' : r.topic_title}`,
+    subtitle: `${t(...CATEGORY_LABEL[r.category])} · ${r.type === 'topic' ? t('mavzu', 'тема') : r.topic_title}`,
     result: r,
   }));
   const items = [...pageItems, ...resultItems];
@@ -168,7 +170,7 @@ export function SearchBar() {
             setActive(-1);
           }
         }}
-        placeholder="Qidiruv... (namoz, sura, duo, mavzu...)"
+        placeholder={t('Qidiruv... (namoz, sura, duo, mavzu...)', 'Поиск... (намаз, сура, дуа, тема...)')}
         className="w-full rounded-full border border-neutral-200 bg-white py-2 pl-11 pr-16 text-sm shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-primary-500/60 focus:ring-2 focus:ring-primary-500/30 dark:border-neutral-700 dark:bg-neutral-800"
       />
       <kbd className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500 sm:block dark:border-neutral-700 dark:bg-neutral-900">
@@ -177,7 +179,7 @@ export function SearchBar() {
 
       {showPanel && (
         <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 motion-safe:animate-fade-in dark:bg-neutral-900 dark:ring-white/10">
-          <ul id={listId} role="listbox" aria-label="Qidiruv natijalari" className="max-h-[26rem] overflow-y-auto p-2">
+          <ul id={listId} role="listbox" aria-label={t('Qidiruv natijalari', 'Результаты поиска')} className="max-h-[26rem] overflow-y-auto p-2">
             {items.map((item, i) => (
               <li
                 key={item.key}
@@ -214,9 +216,9 @@ export function SearchBar() {
               </li>
             ))}
             {!loading && items.length === 0 && (
-              <li className="px-3 py-6 text-center text-sm text-neutral-500">«{trimmed}» bo‘yicha hech narsa topilmadi.</li>
+              <li className="px-3 py-6 text-center text-sm text-neutral-500">{t(`«${trimmed}» bo‘yicha hech narsa topilmadi.`, `По запросу «${trimmed}» ничего не найдено.`)}</li>
             )}
-            {loading && items.length === 0 && <li className="px-3 py-6 text-center text-sm text-neutral-500">Qidirilmoqda…</li>}
+            {loading && items.length === 0 && <li className="px-3 py-6 text-center text-sm text-neutral-500">{t('Qidirilmoqda…', 'Поиск…')}</li>}
           </ul>
           {total > 0 && (
             <button
@@ -225,7 +227,7 @@ export function SearchBar() {
               onMouseDown={(e) => e.preventDefault()}
               className="flex w-full items-center justify-between border-t border-neutral-100 px-4 py-2.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-50 dark:border-neutral-800 dark:text-emerald-300 dark:hover:bg-primary-900/30"
             >
-              Barcha natijalar ({total})
+              {t('Barcha natijalar', 'Все результаты')} ({total})
               <span aria-hidden>↵</span>
             </button>
           )}

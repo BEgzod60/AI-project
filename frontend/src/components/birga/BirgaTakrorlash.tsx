@@ -11,6 +11,8 @@ import { MicIndicator, Segmented, listeningState } from './shared';
 import { ZamSuraSelect } from './ZamSuraSelect';
 import { PartPicker } from './PartPicker';
 import { MuslimUzAttribution, SourceLine } from './Sources';
+import { prayerTitle, rakatLabel } from '../../utils/prayerNames';
+import { useI18n } from '../../i18n';
 
 interface Props {
   session: BirgaSession;
@@ -40,6 +42,7 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
   }, [session, zam]);
 
   const [selected, setSelected] = useState(items[0] ?? '');
+  const { t, lang } = useI18n();
   const [listening, setListening] = useState(false);
   const [view, setView] = useState<'ikkalasi' | 'arab' | 'lotin'>('ikkalasi');
   const listRef = useRef<HTMLOListElement>(null);
@@ -49,7 +52,7 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
 
   const rec = session.recitations[selected] ?? session.recitations[items[0]];
   const tokens = useMemo(() => (rec?.arabic ? arabicTokens(rec.arabic.join(' ')) : []), [rec]);
-  const match = tokens.length && speech.transcript ? matchRecitation(tokens.map((t) => t.norm), speech.transcript) : null;
+  const match = tokens.length && speech.transcript ? matchRecitation(tokens.map((tk) => tk.norm), speech.transcript) : null;
   const matchedSet = new Set(match?.indices ?? []);
   // Lotincha oyatlar (muslim.uz) — qaysilari o'qilgani bilan
   const latin = useMemo(
@@ -71,7 +74,8 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
     reset();
   };
   const idx = items.indexOf(rec?.slug ?? '');
-  const partLabel = session.parts.find((p) => p.index === session.part)?.label;
+  const curPart = session.parts.find((p) => p.index === session.part);
+  const partLabel = curPart ? rakatLabel(curPart.count, curPart.kind, lang) : undefined;
 
   // Telefonda gorizontal ro'yxatda tanlangan element ko'rinib tursin (sahifa emas, faqat ro'yxat suriladi)
   useEffect(() => {
@@ -82,32 +86,32 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
   }, [rec?.slug]);
 
   return (
-    <section aria-label="Birga takrorlash" className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#06180e] via-[#040d08] to-black text-white shadow-xl ring-1 ring-emerald-500/25">
+    <section aria-label={t('Birga takrorlash', 'Повторять вместе')} className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#06180e] via-[#040d08] to-black text-white shadow-xl ring-1 ring-emerald-500/25">
       <header className="flex flex-wrap items-center gap-3 border-b border-white/10 px-3 py-3 sm:px-5">
-        <button type="button" onClick={() => { setListening(false); onExit(); }} aria-label="Orqaga" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/15 transition hover:bg-white/10">
+        <button type="button" onClick={() => { setListening(false); onExit(); }} aria-label={t('Orqaga', 'Назад')} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/15 transition hover:bg-white/10">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M15 6l-6 6 6 6" /></svg>
         </button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[10px] font-bold uppercase tracking-wider text-emerald-300 sm:hidden">
-            Birga takrorlash{partLabel && <span className="text-accent-400"> · {partLabel}</span>}
+            {t('Birga takrorlash', 'Повторять вместе')}{partLabel && <span className="text-accent-400"> · {partLabel}</span>}
           </p>
           <h2 className="truncate font-display text-base font-bold sm:text-xl">
-            <span className="hidden sm:inline">Birga takrorlash — </span>{session.category.name} namozi
+            <span className="hidden sm:inline">{t('Birga takrorlash', 'Повторять вместе')} — </span>{prayerTitle(session.category.slug, session.category.name, lang)}
             {partLabel && <span className="hidden font-semibold text-accent-400 sm:inline"> · {partLabel}</span>}
           </h2>
-          <p className="text-[11px] text-white/50">Mashq rejimi: namunani tinglang, so‘ng ovoz chiqarib o‘qing — AI tanigan so‘zlarni belgilaydi.</p>
+          <p className="text-[11px] text-white/50">{t('Mashq rejimi: namunani tinglang, so‘ng ovoz chiqarib o‘qing — AI tanigan so‘zlarni belgilaydi.', 'Режим тренировки: послушайте образец, затем прочитайте вслух — ИИ отметит распознанные слова.')}</p>
         </div>
       </header>
 
       {session.parts.length > 1 && (
         <div className="border-b border-white/10 px-3 py-3 sm:px-5">
           <PartPicker parts={session.parts} value={session.part} onChange={onPart} loading={partLoading} />
-          {partError && <p className="mt-2 text-xs text-rose-200">Tanlangan qism yuklanmadi — internetni tekshirib, qayta tanlang.</p>}
+          {partError && <p className="mt-2 text-xs text-rose-200">{t('Tanlangan qism yuklanmadi — internetni tekshirib, qayta tanlang.', 'Выбранная часть не загрузилась — проверьте интернет и выберите снова.')}</p>}
         </div>
       )}
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 p-3 sm:p-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <nav aria-label="Sura va duolar" className="min-w-0">
+        <nav aria-label={t('Sura va duolar', 'Суры и дуа')} className="min-w-0">
           <ol ref={listRef} className="relative flex snap-x gap-1.5 overflow-x-auto overscroll-x-contain pb-1 lg:flex-col lg:overflow-visible">
             {items.map((slug, i) => {
               const r = session.recitations[slug];
@@ -139,23 +143,23 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="font-display text-xl font-extrabold sm:text-2xl">{rec.name}</h3>
               <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-                <button type="button" onClick={() => choose(items[idx - 1])} disabled={idx <= 0} className="h-11 rounded-xl bg-white/5 px-3 text-sm font-semibold ring-1 ring-white/15 disabled:opacity-30 sm:h-10">← Oldingi</button>
-                <button type="button" onClick={() => choose(items[idx + 1])} disabled={idx >= items.length - 1} className="h-11 rounded-xl bg-white/5 px-3 text-sm font-semibold ring-1 ring-white/15 disabled:opacity-30 sm:h-10">Keyingi →</button>
+                <button type="button" onClick={() => choose(items[idx - 1])} disabled={idx <= 0} className="h-11 rounded-xl bg-white/5 px-3 text-sm font-semibold ring-1 ring-white/15 disabled:opacity-30 sm:h-10">← {t('Oldingi', 'Назад')}</button>
+                <button type="button" onClick={() => choose(items[idx + 1])} disabled={idx >= items.length - 1} className="h-11 rounded-xl bg-white/5 px-3 text-sm font-semibold ring-1 ring-white/15 disabled:opacity-30 sm:h-10">{t('Keyingi', 'Далее')} →</button>
               </div>
             </div>
 
             <div className="rounded-2xl bg-white p-3 text-neutral-900 dark:bg-neutral-900 dark:text-white">
-              <p className="mb-2 text-xs font-semibold text-neutral-500">1. Namunani tinglang</p>
+              <p className="mb-2 text-xs font-semibold text-neutral-500">{t('1. Namunani tinglang', '1. Послушайте образец')}</p>
               <AudioPlayer audio={audio} label={rec.name} reference={reference} />
             </div>
 
             <div className="rounded-2xl bg-black/30 p-3 ring-1 ring-white/10 sm:p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-white/60">2. Ovoz chiqarib o‘qing</p>
+                <p className="text-xs font-semibold text-white/60">{t('2. Ovoz chiqarib o‘qing', '2. Прочитайте вслух')}</p>
                 <div className={`grid w-full gap-2 sm:flex sm:w-auto ${listening ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  {listening && <button type="button" onClick={reset} className="h-11 rounded-xl bg-white/5 px-3 text-sm font-semibold ring-1 ring-white/15 sm:h-10">Qaytadan</button>}
+                  {listening && <button type="button" onClick={reset} className="h-11 rounded-xl bg-white/5 px-3 text-sm font-semibold ring-1 ring-white/15 sm:h-10">{t('Qaytadan', 'Заново')}</button>}
                   <button type="button" onClick={() => setListening((v) => !v)} aria-pressed={listening} className={`h-11 rounded-xl px-4 text-sm font-bold transition sm:h-10 ${listening ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white hover:bg-emerald-400'}`}>
-                    {listening ? 'To‘xtatish' : 'Mikrofonni yoqish'}
+                    {listening ? t('To‘xtatish', 'Стоп') : t('Mikrofonni yoqish', 'Включить микрофон')}
                   </button>
                 </div>
               </div>
@@ -165,7 +169,7 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
                   {match && (
                     // O'qib turganda ko'rinib tursin — uzun matn tagida emas
                     <div className="min-w-[10rem] flex-1">
-                      <div className="flex justify-between text-xs text-white/60"><span>Tanilgan so‘zlar</span><span className="tabular-nums">{match.matched} / {match.total}</span></div>
+                      <div className="flex justify-between text-xs text-white/60"><span>{t('Tanilgan so‘zlar', 'Распознано слов')}</span><span className="tabular-nums">{match.matched} / {match.total}</span></div>
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${Math.round(match.ratio * 100)}%` }} /></div>
                     </div>
                   )}
@@ -174,15 +178,15 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
 
               {tokens.length > 0 && (
                 <div className="mt-4">
-                  <Segmented label="Matn ko‘rinishi" value={view} onChange={setView} options={[
-                    { id: 'ikkalasi', label: 'Ikkalasi' }, { id: 'arab', label: 'Arabcha' }, { id: 'lotin', label: 'Lotincha' },
+                  <Segmented label={t('Matn ko‘rinishi', 'Вид текста')} value={view} onChange={setView} options={[
+                    { id: 'ikkalasi', label: t('Ikkalasi', 'Оба') }, { id: 'arab', label: t('Arabcha', 'По-арабски') }, { id: 'lotin', label: t('Lotincha', 'Латиницей') },
                   ]} />
                 </div>
               )}
               {tokens.length > 0 && view !== 'lotin' && (
                 <p lang="ar" dir="rtl" className="mt-4 font-quran text-[1.65rem] leading-[2.1] min-[400px]:text-3xl sm:text-4xl sm:leading-[2.3]">
-                  {tokens.map((t, i) => (
-                    <span key={i} className={`transition-colors ${matchedSet.has(i) ? 'text-emerald-300' : 'text-white/85'}`}>{t.display} </span>
+                  {tokens.map((tk, i) => (
+                    <span key={i} className={`transition-colors ${matchedSet.has(i) ? 'text-emerald-300' : 'text-white/85'}`}>{tk.display} </span>
                   ))}
                 </p>
               )}
@@ -200,15 +204,15 @@ export function BirgaTakrorlash({ session, lesson, initialZam, onExit, onPart, p
 
               {listening && speech.transcript && <HeardLatin transcript={speech.transcript} ayahs={latin} className="mt-3" />}
               <div className="mt-3 space-y-0.5 border-t border-white/10 pt-2">
-                <SourceLine prefix="Lotincha o‘qilishi va ma’nosi" title={rec.source_title} url={rec.source_url} />
-                {rec.arabic && <SourceLine prefix="Arabcha matn" title="Tanzil Project (CC BY 3.0)" url="https://tanzil.net" />}
+                <SourceLine prefix={t('Lotincha o‘qilishi va ma’nosi', 'Транскрипция и смысл')} title={rec.source_title} url={rec.source_url} />
+                {rec.arabic && <SourceLine prefix={t('Arabcha matn', 'Арабский текст')} title="Tanzil Project (CC BY 3.0)" url="https://tanzil.net" />}
                 <MuslimUzAttribution />
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-white/45">
                 {rec.arabic
-                  ? 'So‘zlar Tanzil arabcha matni bilan solishtiriladi. Bu talaffuzni baholamaydi — faqat yordamchi belgi.'
-                  : 'Bu duo uchun arabcha tasdiqlangan matn bazada yo‘q — faqat ovoz eshitilgani ko‘rsatiladi.'}
-                {!canSpeech && ' Bu brauzer so‘zlarni tanimaydi — Google Chrome yoki Microsoft Edge’da oching; ovoz faolligi baribir ishlaydi.'}
+                  ? t('So‘zlar Tanzil arabcha matni bilan solishtiriladi. Bu talaffuzni baholamaydi — faqat yordamchi belgi.', 'Слова сравниваются с арабским текстом Tanzil. Это не оценка произношения — только вспомогательная отметка.')
+                  : t('Bu duo uchun arabcha tasdiqlangan matn bazada yo‘q — faqat ovoz eshitilgani ko‘rsatiladi.', 'Для этого дуа нет проверенного арабского текста — показывается только, что голос услышан.')}
+                {!canSpeech && t(' Bu brauzer so‘zlarni tanimaydi — Google Chrome yoki Microsoft Edge’da oching; ovoz faolligi baribir ishlaydi.', ' Браузер не распознаёт слова — откройте в Google Chrome или Microsoft Edge; отслеживание голоса всё равно работает.')}
               </p>
             </div>
           </div>

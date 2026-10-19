@@ -1,3 +1,4 @@
+import { getLang } from '../../i18n';
 interface Props {
   /** Qibla yo'nalishi, shimoldan soat mili bo'yicha */
   bearing: number | null;
@@ -24,7 +25,7 @@ export function QiblaCompass({ bearing, heading, aligned }: Props) {
 
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[17rem]">
-      <svg viewBox="0 0 200 200" className="h-full w-full drop-shadow-xl" role="img" aria-label={bearing === null ? 'Kompas' : `Qibla yo‘nalishi ${Math.round(bearing)} gradus`}>
+      <svg viewBox="0 0 200 200" className="h-full w-full drop-shadow-xl" role="img" aria-label={getLang() === 'ru' ? (bearing === null ? 'Компас' : `Направление киблы ${Math.round(bearing)}°`) : bearing === null ? 'Kompas' : `Qibla yo‘nalishi ${Math.round(bearing)} gradus`}>
         <defs>
           <linearGradient id="qc-gold" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#f7e3a3" />

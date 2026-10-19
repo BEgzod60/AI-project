@@ -5,6 +5,9 @@ TRANSLATION_TITLE = 'Muhammad Sodiq Muhammad Yusuf — o‘zbekcha (kirill) ma�
 TEXT_SOURCE = 'Tanzil Project — Usmoniy Qur’on matni (CC BY 3.0)'
 SOURCE_URL = 'https://tanzil.net'
 API_TITLE = 'Tanzil Project'
+TRANSLATION_TITLE_RU = 'Эльмир Кулиев — смысловой перевод Корана (ru.kuliev, Tanzil)'
+TEXT_SOURCE_RU = 'Tanzil Project — текст Корана (CC BY 3.0)'
+REVELATION_RU = {'makkiy': 'Мекканская', 'madaniy': 'Мединская'}
 
 # Oyatma-oyat tilovat — Tanzil pleyeri ishlatadigan audio fayllar (SSSAAA.mp3).
 AYAH_AUDIO_URL = 'https://tanzil.net/res/audio/{reciter}/{file}.mp3'

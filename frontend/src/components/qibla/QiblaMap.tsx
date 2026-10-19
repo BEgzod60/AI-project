@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { KAABA, compassPoint, destinationPoint, formatDistance, greatCirclePoints, type LatLon } from './geo';
 import { L, createMap, kaabaIcon, userIcon } from './leaflet';
+import { getLang, useI18n } from '../../i18n';
 
 interface Props {
   from: LatLon;
@@ -35,6 +36,7 @@ function arrowIcon(bearing: number): L.DivIcon {
  * ustida oltin strelka bilan ko'rsatiladi. «Butun yo'l» — Ka'bagacha eng qisqa (katta doira) yo'l.
  */
 export default function QiblaMap({ from, label, bearing, distance, accuracy }: Props) {
+  const { t } = useI18n();
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -84,7 +86,7 @@ export default function QiblaMap({ from, label, bearing, distance, accuracy }: P
     L.marker([from.lat, from.lon], { icon: userIcon, title: label, keyboard: false, zIndexOffset: 600 })
       .bindTooltip(label, { permanent: true, direction: 'top', offset: [0, -10] })
       .addTo(layer);
-    L.marker([KAABA.lat, KAABA.lon], { icon: kaabaIcon, title: 'Makka — Ka’ba', keyboard: false })
+    L.marker([KAABA.lat, KAABA.lon], { icon: kaabaIcon, title: getLang() === 'ru' ? 'Мекка — Кааба' : 'Makka — Ka’ba', keyboard: false })
       .bindTooltip('Makka', { permanent: true, direction: 'right', offset: [16, 0] })
       .addTo(layer);
 
@@ -114,18 +116,18 @@ export default function QiblaMap({ from, label, bearing, distance, accuracy }: P
 
   return (
     <div className="relative h-full min-h-[16rem] w-full">
-      <div ref={elRef} className="h-full w-full" aria-label={`Xarita: ${label} dan Ka’ba tomon yo‘nalish`} role="region" />
-      <div className="absolute right-2 top-2 z-[500] flex gap-1.5" role="group" aria-label="Xarita ko‘rinishi">
+      <div ref={elRef} className="h-full w-full" aria-label={t(`Xarita: ${label} dan Ka’ba tomon yo‘nalish`, `Карта: направление от ${label} на Каабу`)} role="region" />
+      <div className="absolute right-2 top-2 z-[500] flex gap-1.5" role="group" aria-label={t('Xarita ko‘rinishi', 'Вид карты')}>
         <button type="button" aria-pressed={mode === 'near'} onClick={() => setMode('near')} className={btn(mode === 'near')}>
-          Joyim
+          {t('Joyim', 'Моё место')}
         </button>
         <button type="button" aria-pressed={mode === 'full'} onClick={() => setMode('full')} className={btn(mode === 'full')}>
-          Butun yo‘l
+          {t('Butun yo‘l', 'Весь путь')}
         </button>
       </div>
       {mode === 'near' && (
         <p className="pointer-events-none absolute bottom-6 left-2 z-[500] max-w-[85%] rounded-xl bg-primary-900/90 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-          Qibla: {Math.round(bearing)}° · {compassPoint(bearing)} — oltin strelka tomonga
+          {t('Qibla', 'Кибла')}: {Math.round(bearing)}° · {compassPoint(bearing)} — {t('oltin strelka tomonga', 'по золотой стрелке')}
         </p>
       )}
     </div>

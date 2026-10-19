@@ -13,3 +13,5 @@ def topic_urlpatterns(category):
 
 urlpatterns = topic_urlpatterns(Topic.Category.NAMOZ)
 iymon_urlpatterns = topic_urlpatterns(Topic.Category.IYMON)
+zakot_urlpatterns = topic_urlpatterns(Topic.Category.ZAKOT)
+roza_urlpatterns = topic_urlpatterns(Topic.Category.ROZA)

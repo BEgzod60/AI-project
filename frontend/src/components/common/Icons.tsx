@@ -36,6 +36,22 @@ export const BookIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const CrescentIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path strokeLinejoin="round" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" />
+    <path strokeLinejoin="round" d="m17 3 .7 1.6 1.6.7-1.6.7L17 7.6l-.7-1.6-1.6-.7 1.6-.7L17 3Z" />
+  </Svg>
+);
+
+export const CoinsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <ellipse cx="9" cy="7" rx="5" ry="2.5" />
+    <path d="M4 7v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V7" />
+    <path strokeLinecap="round" d="M14 13.2c3 .2 6 1.2 6 2.8v3c0 1.4-2.7 2.5-6 2.5s-6-1.1-6-2.5v-3.5" />
+    <path d="M8 16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5" />
+  </Svg>
+);
+
 export const GraduateIcon = (p: IconProps) => (
   <Svg {...p}>
     <path strokeLinejoin="round" d="m2 9 10-5 10 5-10 5L2 9Z" />
@@ -66,6 +82,25 @@ export const InfoIcon = (p: IconProps) => (
 export const CodeIcon = (p: IconProps) => (
   <Svg {...p}>
     <path strokeLinecap="round" strokeLinejoin="round" d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14" />
+  </Svg>
+);
+
+export const MenuIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h10" />
+  </Svg>
+);
+
+export const CloseIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+  </Svg>
+);
+
+export const SearchIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path strokeLinecap="round" d="m20 20-3.5-3.5" />
   </Svg>
 );
 

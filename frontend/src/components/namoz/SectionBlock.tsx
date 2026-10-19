@@ -1,4 +1,5 @@
 import type { SourceReference, TopicSection } from '../../types/namoz';
+import { useT } from '../../i18n';
 
 /** Matnni xatboshilarga ajratadi (har bir bo'sh bo'lmagan qator — alohida xatboshi) */
 /** Manba matnida so'zlar &nbsp; bilan zanjir qilib bog'langan — tor ekranda qatorga bo'linmay qoladi */
@@ -19,9 +20,10 @@ function Paragraphs({ text, className = '' }: { text: string; className?: string
 }
 
 function Sources({ sources, reviewedBy }: { sources: SourceReference[]; reviewedBy: string }) {
+  const t = useT();
   return (
     <footer className="mt-6 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-      <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">Manbalar</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">{t('Manbalar', 'Источники')}</p>
       <ol className="mt-2 space-y-1.5 text-sm text-neutral-600 dark:text-neutral-400">
         {sources.map((s, i) => {
           const label = [s.title, s.author, s.reference].filter(Boolean).join(' — ');
@@ -39,7 +41,7 @@ function Sources({ sources, reviewedBy }: { sources: SourceReference[]; reviewed
           );
         })}
       </ol>
-      {reviewedBy && <p className="mt-3 text-xs text-neutral-500">Tekshirdi: {reviewedBy}</p>}
+      {reviewedBy && <p className="mt-3 text-xs text-neutral-500">{t('Tekshirdi', 'Проверено')}: {reviewedBy}</p>}
     </footer>
   );
 }
@@ -84,13 +86,13 @@ export function SectionBlock({ section }: { section: TopicSection }) {
   return (
     <section
       id={`bolim-${section.id}`}
-      className={`scroll-mt-24 rounded-3xl p-6 shadow-sm ring-1 md:p-8 ${
+      className={`scroll-mt-28 rounded-2xl p-4 shadow-sm ring-1 sm:p-6 md:rounded-3xl md:p-8 lg:scroll-mt-24 ${
         isNote
           ? 'bg-accent-100 ring-accent-400/40 dark:bg-accent-500/10'
           : 'bg-white ring-black/5 dark:bg-neutral-900 dark:ring-white/10'
       }`}
     >
-      <h2 className="font-display text-xl font-bold text-neutral-900 md:text-2xl dark:text-white">{section.title}</h2>
+      <h2 className="font-display text-lg font-bold text-neutral-900 sm:text-xl md:text-2xl dark:text-white">{section.title}</h2>
       <Paragraphs text={section.body} className="mt-3" />
       {section.content_html && (
         // Backend nh3 bilan faqat ruxsat etilgan teglarni qoldiradi (apps/namoz/sanitize.py)

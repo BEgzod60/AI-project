@@ -14,6 +14,8 @@ class Topic(models.Model):
     class Category(models.TextChoices):
         NAMOZ = 'namoz', 'Namoz'
         IYMON = 'iymon', 'Iymon'
+        ZAKOT = 'zakot', 'Zakot'
+        ROZA = 'roza', 'Ro‘za'
 
     class Icon(models.TextChoices):
         DROPLET = 'droplet', 'Tomchi (poklanish)'
@@ -40,6 +42,14 @@ class Topic(models.Model):
         SHIELD = 'shield', 'Qalqon (aqida)'
         PEOPLE = 'people', 'Jamoa'
         SCALE = 'scale', 'Tarozi (halol va harom)'
+        # Zakot bo'limi
+        HAND_COIN = 'hand_coin', "Qo'l va tanga (zakot berish)"
+        SHEEP = 'sheep', "Qo'y (chorva)"
+        COINS = 'coins', 'Tangalar (tilla va kumush)'
+        BANKNOTE = 'banknote', 'Pul (naqd pul)'
+        STORE = 'store', "Do'kon (tijorat)"
+        RING = 'ring', 'Uzuk (taqinchoq)'
+        GEM = 'gem', 'Qimmatbaho tosh'
 
     class Theme(models.TextChoices):
         EMERALD = 'emerald', 'Zumrad'

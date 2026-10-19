@@ -6,6 +6,7 @@ import { HeardLatin } from './HeardLatin';
 import { useVoiceActivity } from '../../hooks/useVoiceActivity';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { MicIndicator, listeningState } from './shared';
+import { useT } from '../../i18n';
 
 interface Props {
   threshold: number;
@@ -21,6 +22,7 @@ export function MicCheck({ threshold, speech, reference }: Props) {
   const voice = useVoiceActivity(threshold);
   const rec = useSpeechRecognition(on && speech && voice.status === 'active');
   const { start, stop } = voice;
+  const t = useT();
 
   useEffect(() => {
     if (on) {
@@ -45,8 +47,8 @@ export function MicCheck({ threshold, speech, reference }: Props) {
     <div className="rounded-2xl bg-black/25 p-3 ring-1 ring-white/10">
       <div className="flex items-center justify-between gap-3">
         <span className="min-w-0">
-          <span className="block text-sm font-semibold">Mikrofonni sinash</span>
-          <span className="block text-[11px] text-white/50">Boshlashdan oldin {reference ? `${reference.name}dan` : 'biror'} oyatni ovoz chiqarib o‘qib ko‘ring</span>
+          <span className="block text-sm font-semibold">{t('Mikrofonni sinash', 'Проверка микрофона')}</span>
+          <span className="block text-[11px] text-white/50">{t(`Boshlashdan oldin ${reference ? `${reference.name}dan` : 'biror'} oyatni ovoz chiqarib o‘qib ko‘ring`, `Перед началом прочитайте вслух аят${reference ? ` (${reference.name})` : ''}`)}</span>
         </span>
         <button
           type="button"
@@ -54,7 +56,7 @@ export function MicCheck({ threshold, speech, reference }: Props) {
           aria-pressed={on}
           className={`h-10 shrink-0 rounded-xl px-3 text-sm font-bold transition ${on ? 'bg-rose-500 text-white' : 'bg-white/10 text-white ring-1 ring-white/15 hover:bg-white/15'}`}
         >
-          {on ? 'To‘xtatish' : 'Sinash'}
+          {on ? t('To‘xtatish', 'Стоп') : t('Sinash', 'Проверить')}
         </button>
       </div>
 
@@ -63,23 +65,23 @@ export function MicCheck({ threshold, speech, reference }: Props) {
           <MicIndicator state={state} level={voice.level} speaking={voice.speaking} />
           <ul className="space-y-1 text-xs">
             <li className={heard ? 'text-emerald-300' : 'text-white/55'}>
-              {heard ? '✓ Ovozingiz eshitildi — o‘qib bo‘lgach jim tursangiz, keyingi bosqichga o‘tadi' : '… Ovoz kutilmoqda — gapirib ko‘ring'}
+              {heard ? t('✓ Ovozingiz eshitildi — o‘qib bo‘lgach jim tursangiz, keyingi bosqichga o‘tadi', '✓ Голос услышан — замолчите после чтения, и начнётся следующий этап') : t('… Ovoz kutilmoqda — gapirib ko‘ring', '… Ожидание голоса — скажите что-нибудь')}
             </li>
             {speech && (
               <li className={wordsOk ? 'text-emerald-300' : rec.status === 'service' || rec.status === 'unsupported' ? 'text-amber-200' : 'text-white/55'}>
                 {wordsOk
-                  ? '✓ So‘zlar tanilmoqda — sura oxiri tanilsa, darhol o‘tadi'
+                  ? t('✓ So‘zlar tanilmoqda — sura oxiri tanilsa, darhol o‘tadi', '✓ Слова распознаются — как только распознан конец суры, переход сразу')
                   : rec.status === 'service' || rec.status === 'unsupported'
-                    ? '! Bu brauzer so‘zlarni tanimaydi. So‘zlarni tanish uchun Google Chrome yoki Microsoft Edge’da oching. Bunda ham ovoz bo‘yicha ishlaydi.'
+                    ? t('! Bu brauzer so‘zlarni tanimaydi. So‘zlarni tanish uchun Google Chrome yoki Microsoft Edge’da oching. Bunda ham ovoz bo‘yicha ishlaydi.', '! Этот браузер не распознаёт слова. Откройте в Google Chrome или Microsoft Edge. Переход по голосу работает и так.')
                     : rec.status === 'network'
-                      ? '! Internet uzildi — so‘zlar tanilmaydi, ovoz bo‘yicha ishlaydi.'
-                      : '… So‘zlar kutilmoqda'}
+                      ? t('! Internet uzildi — so‘zlar tanilmaydi, ovoz bo‘yicha ishlaydi.', '! Нет интернета — слова не распознаются, работает по голосу.')
+                      : t('… So‘zlar kutilmoqda', '… Ожидание слов')}
               </li>
             )}
           </ul>
           {wordsOk && <HeardLatin transcript={rec.transcript} ayahs={ayahs} />}
           {!heard && voice.status === 'active' && (
-            <p className="text-[11px] text-white/45">Eshitilmasa: «AI sezgirligi»ni «Yuqori» qiling yoki mikrofonga yaqinroq o‘qing.</p>
+            <p className="text-[11px] text-white/45">{t('Eshitilmasa: «AI sezgirligi»ni «Yuqori» qiling yoki mikrofonga yaqinroq o‘qing.', 'Если не слышно: поставьте «Чувствительность ИИ» на «Высокая» или читайте ближе к микрофону.')}</p>
           )}
         </div>
       )}

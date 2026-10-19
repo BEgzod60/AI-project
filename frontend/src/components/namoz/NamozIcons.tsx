@@ -168,6 +168,61 @@ const paths: Record<TopicIcon, ReactNode> = {
       <path strokeLinejoin="round" d="m5 6-3 7a3 3 0 0 0 6 0L5 6Zm14 0-3 7a3 3 0 0 0 6 0l-3-7Z" />
     </>
   ),
+  // --- Zakot bo'limi ---
+  // Qo'l va tanga — zakot berish
+  hand_coin: (
+    <>
+      <circle cx="15" cy="6.5" r="3.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 15.5 7 13l4 1.5h3.5a1.5 1.5 0 0 1 0 3H11m3.5 0 3.8-1.9a1.5 1.5 0 0 1 1.5 2.6L14 21H7l-4-2" />
+    </>
+  ),
+  // Qo'y — chorva
+  sheep: (
+    <>
+      <path strokeLinejoin="round" d="M8 8.5a2.5 2.5 0 0 1 4-1.5 2.5 2.5 0 0 1 4 .5 2.5 2.5 0 0 1 2 4 2.5 2.5 0 0 1-2 4H9a2.5 2.5 0 0 1-2-4 2.5 2.5 0 0 1 1-3Z" />
+      <path strokeLinejoin="round" d="M7.5 9.5 5 8.5a1.6 1.6 0 0 0-2 1.5c0 1 .8 1.8 2 1.8h2" />
+      <path strokeLinecap="round" d="M10 15.5V20M15 15.5V20" />
+    </>
+  ),
+  // Tangalar — tilla va kumush
+  coins: (
+    <>
+      <ellipse cx="9" cy="7" rx="5" ry="2.5" />
+      <path d="M4 7v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V7" />
+      <path strokeLinecap="round" d="M14 13.2c3 .2 6 1.2 6 2.8v3c0 1.4-2.7 2.5-6 2.5s-6-1.1-6-2.5v-3.5" />
+      <path d="M8 16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5" />
+    </>
+  ),
+  // Pul — naqd pul
+  banknote: (
+    <>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path strokeLinecap="round" d="M6 9.5v.01M18 14.5v.01" />
+    </>
+  ),
+  // Do'kon — tijorat
+  store: (
+    <>
+      <path strokeLinejoin="round" d="M4 9.5 5.5 4h13L20 9.5a2.7 2.7 0 0 1-5.3.5 2.7 2.7 0 0 1-5.4 0A2.7 2.7 0 0 1 4 9.5Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12v8h14v-8M10 20v-4.5h4V20" />
+    </>
+  ),
+  // Uzuk — taqinchoq
+  ring: (
+    <>
+      <circle cx="12" cy="15" r="6" />
+      <path strokeLinejoin="round" d="m9.5 3.5 2.5 3 2.5-3-1-1h-3l-1 1Z" />
+      <path strokeLinecap="round" d="M10.5 8.5 12 6.5l1.5 2" />
+    </>
+  ),
+  // Qimmatbaho tosh
+  gem: (
+    <>
+      <path strokeLinejoin="round" d="M7 4h10l4 5.5L12 20 3 9.5 7 4Z" />
+      <path strokeLinejoin="round" d="M3 9.5h18M9.5 4 8 9.5l4 10.5 4-10.5L14.5 4" />
+    </>
+  ),
 };
 
 export function TopicIconSvg({ icon, className = 'h-6 w-6' }: { icon: TopicIcon; className?: string }) {

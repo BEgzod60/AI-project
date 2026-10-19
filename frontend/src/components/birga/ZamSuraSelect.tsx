@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { BirgaRecitation } from '../../types/birga';
+import { useT } from '../../i18n';
 
 /** "Ixlos surasi" -> "Ixlos" */
 const shortName = (name: string) => name.replace(/\s+surasi$/i, '');
@@ -32,7 +33,9 @@ interface Props {
 }
 
 /** Zam sura tanlash (qorong'i rejim uchun). Ro'yxat oqimda ochiladi — telefonda ekrandan chiqmaydi. */
-export function ZamSuraSelect({ options, value, onChange, label = 'Zam sura', warning }: Props) {
+export function ZamSuraSelect({ options, value, onChange, label, warning }: Props) {
+  const t = useT();
+  label = label ?? t('Zam sura', 'Дополнительная сура');
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -73,7 +76,7 @@ export function ZamSuraSelect({ options, value, onChange, label = 'Zam sura', wa
         <NumberBadge n={selected.surah_number} active />
         <span className="min-w-0 flex-1">
           <span className="block text-[10px] font-bold uppercase tracking-wider text-accent-400/90">{label}</span>
-          <span className="block truncate font-display text-base font-bold text-white">{shortName(selected.name)} surasi</span>
+          <span className="block truncate font-display text-base font-bold text-white">{/[А-Яа-я]/.test(selected.name) ? selected.name : `${shortName(selected.name)} surasi`}</span>
           <span className="block truncate text-xs italic text-white/50">{preview(selected.transliteration)}</span>
         </span>
         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/70 ring-1 ring-white/10 transition ${open ? 'rotate-180 bg-emerald-500/20 text-emerald-300' : 'group-hover:text-white'}`}>
@@ -83,7 +86,7 @@ export function ZamSuraSelect({ options, value, onChange, label = 'Zam sura', wa
 
       {warning && !open && <p className="mt-1 px-1 text-[11px] text-amber-200/90">{warning}</p>}
       {open && (
-        <ul id={listId} role="listbox" aria-label="Zam surani tanlang" className="mt-2 grid grid-cols-2 gap-1.5 rounded-2xl bg-black/40 p-1.5 ring-1 ring-white/10 motion-safe:animate-fade-in">
+        <ul id={listId} role="listbox" aria-label={t('Zam surani tanlang', 'Выберите дополнительную суру')} className="mt-2 grid grid-cols-2 gap-1.5 rounded-2xl bg-black/40 p-1.5 ring-1 ring-white/10 motion-safe:animate-fade-in">
           {options.map((r) => {
             const active = r.slug === selected.slug;
             return (

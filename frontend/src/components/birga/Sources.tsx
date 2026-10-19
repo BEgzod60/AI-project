@@ -1,4 +1,5 @@
 import type { BirgaSession } from '../../types/birga';
+import { getLang } from '../../i18n';
 
 const linkCls = 'underline decoration-white/30 underline-offset-2 hover:text-white';
 
@@ -14,7 +15,8 @@ export function MuslimUzAttribution({ className = '' }: { className?: string }) 
 }
 
 /** Bitta matnning manbasi: «Manba: … ↗» */
-export function SourceLine({ title, url, prefix = 'Manba', className = '' }: { title?: string; url?: string; prefix?: string; className?: string }) {
+export function SourceLine({ title, url, prefix, className = '' }: { title?: string; url?: string; prefix?: string; className?: string }) {
+  prefix = prefix ?? (getLang() === 'ru' ? 'Источник' : 'Manba');
   if (!title && !url) return null;
   return (
     <p className={`text-[11px] leading-snug text-white/45 ${className}`}>
@@ -37,7 +39,7 @@ export function SourcesList({ sources }: { sources: BirgaSession['sources'] }) {
       <summary className="flex cursor-pointer select-none list-none items-center justify-between gap-2 text-sm font-bold text-white/80">
         <span className="flex items-center gap-2">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-accent-400" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="M4 19.5V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2Zm0 0A2 2 0 0 0 6 21h12" /></svg>
-          Manbalar ({sources.length})
+          {getLang() === 'ru' ? 'Источники' : 'Manbalar'} ({sources.length})
         </span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-white/50 transition group-open:rotate-180" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
       </summary>

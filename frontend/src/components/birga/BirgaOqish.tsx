@@ -6,7 +6,9 @@ import { cacheSessionOffline } from '../../services/birgaService';
 import { BirgaSetup } from './BirgaSetup';
 import { BirgaLive, type SessionStats } from './BirgaLive';
 import { BirgaFinish } from './BirgaFinish';
+import { prayerName, rakatLabel } from '../../utils/prayerNames';
 import { defaultZamChoice, type Gender, type ZamChoice } from './shared';
+import { useI18n } from '../../i18n';
 
 type Phase = 'setup' | 'live' | 'done';
 
@@ -24,6 +26,8 @@ interface Props {
 export function BirgaOqish({ session, initialGender, initialZam, onExit, onPart, partLoading, partError }: Props) {
   const rootRef = useRef<HTMLElement>(null);
   const fullscreen = useFullscreen(rootRef);
+  const { t, lang } = useI18n();
+  const finishPart = session.parts.find((p) => p.index === session.part);
   const { settings, update } = useBirgaSettings(session.settings);
   const [phase, setPhase] = useState<Phase>('setup');
   const [stats, setStats] = useState<SessionStats | null>(null);
@@ -54,7 +58,7 @@ export function BirgaOqish({ session, initialGender, initialZam, onExit, onPart,
   return (
     <section
       ref={rootRef}
-      aria-label="Birga o‘qish"
+      aria-label={t('Birga o‘qish', 'Читать вместе')}
       className={`scroll-mt-20 overflow-hidden bg-gradient-to-br from-[#06180e] via-[#040d08] to-black text-white ring-1 ring-emerald-500/25 ${
         fullscreen.isFullscreen ? 'flex h-[100dvh] flex-col pb-[env(safe-area-inset-bottom)]' : 'flex flex-col rounded-3xl shadow-xl'
       } ${phase === 'live' && !fullscreen.isFullscreen ? 'min-h-[calc(100dvh-7rem)]' : ''}`}
@@ -89,7 +93,7 @@ export function BirgaOqish({ session, initialGender, initialZam, onExit, onPart,
         />
       )}
       {phase === 'done' && stats && (
-        <BirgaFinish name={session.category.name} partLabel={session.parts.find((p) => p.index === session.part)?.label} stats={stats} onAgain={() => setPhase('setup')} onExit={exit} />
+        <BirgaFinish name={prayerName(session.category.slug, session.category.name, lang)} partLabel={finishPart ? rakatLabel(finishPart.count, finishPart.kind, lang) : undefined} stats={stats} onAgain={() => setPhase('setup')} onExit={exit} />
       )}
     </section>
   );
