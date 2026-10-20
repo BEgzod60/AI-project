@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 
 ARABIC_RE = re.compile('[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]')
 LETTER_RE = re.compile(r'[^\W\d_]', re.UNICODE)
-NUMBERED_RE = re.compile(r'^\s*(\d{1,2})\.\s+')
+# Boshidagi &nbsp; ham hisobga olinadi — muslim.uz'da ro'yxatning oxirgi bandi ko'pincha «&nbsp; N.» bilan boshlanadi
+NUMBERED_RE = re.compile(r'^(?:\s|&nbsp;)*(\d{1,2})\.\s+')
 LETTERED_RE = re.compile(r'^\s*[a-zа-яёўқғҳ]\)\s', re.IGNORECASE)
 MEANING_RE = re.compile(r'^\s*ma[’‘\'`ʼ]?nosi\s*:', re.IGNORECASE)
 
@@ -102,7 +103,7 @@ def _iframe(src: str) -> str:
 
 def _strip_number(inner: str, number: str):
     """Ichki HTML boshidagi «N. » ni olib tashlaydi (faqat teg ichida bo'lmasa)."""
-    m = re.match(r'^\s*' + re.escape(number) + r'\.\s+', inner)
+    m = re.match(r'^(?:\s|&nbsp;)*' + re.escape(number) + r'\.\s+', inner)
     return inner[m.end():] if m else None
 
 

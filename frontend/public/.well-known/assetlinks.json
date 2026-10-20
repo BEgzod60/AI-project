@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "uz.iymon.app",
+    "sha256_cert_fingerprints": ["56:50:F7:7A:FE:22:8E:1C:7B:F6:12:7A:E2:81:30:57:74:A7:A8:2A:02:EB:CA:C7:D0:9C:EF:AD:88:CD:81:0E"]
+  }
+}]

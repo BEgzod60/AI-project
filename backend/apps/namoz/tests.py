@@ -124,6 +124,14 @@ class MuslimUzImportTests(TestCase):
         self.assertIn('Shuningdek', out)  # kirillcha «е» lotinga almashgan
         self.assertEqual(mu.transformed_plain_text(out), mu.source_plain_text(fixed))
 
+    def test_transform_keeps_nbsp_prefixed_last_item_in_list(self):
+        from . import muslimuz as mu
+
+        body = '<p>1. Birinchi.</p><p>2. Ikkinchi.</p><p>&nbsp; 3. Uchinchi.</p>'
+        out = mu.transform(body)
+        self.assertEqual(out, '<ol class="steps"><li value="1">Birinchi.</li><li value="2">Ikkinchi.</li><li value="3">Uchinchi.</li></ol>')
+        self.assertEqual(mu.transformed_plain_text(out), mu.source_plain_text(body))
+
     def test_transliteration(self):
         from .muslimuz import cyr_to_lat
 

@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+def siteUrl = project.property('siteUrl')
+def siteHost = new URI(siteUrl).host
+
+android {
+    namespace 'uz.iymon.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'uz.iymon.app'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+
+        manifestPlaceholders = [siteUrl: siteUrl, siteHost: siteHost]
+        resValue 'string', 'asset_statements',
+            "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://${siteHost}\"}}]"
+    }
+
+    // Kalit (keystore) git'ga kirmaydi — android/iymon-release.jks va android/keystore.properties
+    def ksFile = rootProject.file('keystore.properties')
+    if (ksFile.exists()) {
+        def ks = new Properties()
+        ksFile.withInputStream { ks.load(it) }
+        signingConfigs {
+            release {
+                storeFile rootProject.file(ks.storeFile)
+                storePassword ks.storePassword
+                keyAlias ks.keyAlias
+                keyPassword ks.keyPassword
+            }
+        }
+        buildTypes.release.signingConfig signingConfigs.release
+    }
+
+    buildTypes {
+        release { minifyEnabled false }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

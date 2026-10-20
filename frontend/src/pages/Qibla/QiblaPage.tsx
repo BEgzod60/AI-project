@@ -137,6 +137,11 @@ export function QiblaPage() {
   const tilted = live && compass.tilt !== null && compass.tilt > TILT_MAX_DEG;
   const offset = heading !== null ? angleDiff(bearing, heading) : null;
   const aligned = offset !== null && !tilted && Math.abs(offset) <= ALIGN_DEG;
+  // Kompas har safar yoqilganda «8» shaklida kalibrlash ko'rsatmasi chiqadi (yopilguncha)
+  const [calibHint, setCalibHint] = useState(false);
+  useEffect(() => {
+    if (compass.status === 'active') setCalibHint(true);
+  }, [compass.status]);
 
   // Qiblaga to'g'ri kelganda bir marta yengil tebranish (faqat foydalanuvchi yoqqan bo'lsa)
   useEffect(() => {
@@ -327,13 +332,39 @@ export function QiblaPage() {
               {live && (
                 <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                   {t(
-                    `Magnit og‘ish hisobga olindi: ${declination >= 0 ? '+' : '−'}${Math.abs(declination).toFixed(1)}°. Yo‘nalish shubhali bo‘lsa, telefonni havoda «8» shaklida aylantirib kalibrlang.`,
-                    `Магнитное склонение учтено: ${declination >= 0 ? '+' : '−'}${Math.abs(declination).toFixed(1)}°. Если направление сомнительно, откалибруйте телефон, вращая его «восьмёркой».`,
+                    `Magnit og‘ish hisobga olindi: ${declination >= 0 ? '+' : '−'}${Math.abs(declination).toFixed(1)}°.`,
+                    `Магнитное склонение учтено: ${declination >= 0 ? '+' : '−'}${Math.abs(declination).toFixed(1)}°.`,
                   )}
                 </p>
               )}
             </div>
           </div>
+
+          {live && calibHint && (
+            <div role="alert" className="flex items-center gap-3 rounded-2xl bg-accent-400 p-3 text-primary-900 shadow-md ring-2 ring-accent-500 sm:p-4">
+              <svg viewBox="0 0 48 24" className="h-10 w-16 shrink-0" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
+                <path d="M24 12c-4-6-8-9-12-9a9 9 0 0 0 0 18c4 0 8-3 12-9s8-9 12-9a9 9 0 0 1 0 18c-4 0-8-3-12-9Z" />
+                <circle r="3.5" fill="currentColor" stroke="none" className="motion-reduce:hidden">
+                  <animateMotion dur="2.4s" repeatCount="indefinite" path="M24 12c-4-6-8-9-12-9a9 9 0 0 0 0 18c4 0 8-3 12-9s8-9 12-9a9 9 0 0 1 0 18c-4 0-8-3-12-9Z" />
+                </circle>
+              </svg>
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-lg font-extrabold leading-tight sm:text-xl">
+                  {t('Telefonni havoda «8» shaklida aylantiring', 'Вращайте телефон в воздухе «восьмёркой»')}
+                </p>
+                <p className="mt-0.5 text-sm font-medium leading-snug text-primary-900/80">
+                  {t('Kompas kalibrlanadi va Qiblani to‘g‘ri ko‘rsatadi. 2–3 marta aylantirib, telefonni tekis ushlang.', 'Компас откалибруется и будет точно показывать киблу. Сделайте 2–3 «восьмёрки» и держите телефон ровно.')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalibHint(false)}
+                className="shrink-0 rounded-xl bg-primary-900 px-3 py-2 text-sm font-bold text-accent-400 transition hover:bg-primary-800"
+              >
+                {t('Tayyor', 'Готово')}
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             {live ? (

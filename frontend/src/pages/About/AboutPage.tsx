@@ -152,6 +152,28 @@ export function AboutPage() {
         </div>
       </section>
 
+      {/* ===== Mobil ilova (Android APK) ===== */}
+      <section className="mt-5 flex flex-col gap-4 rounded-2xl bg-primary-900 p-4 text-white shadow-sm sm:flex-row sm:items-center sm:p-6 md:mt-10 md:rounded-3xl md:p-8" aria-labelledby="ilova">
+        <img src="/icon-192.png" alt="" width={64} height={64} className="h-14 w-14 shrink-0 rounded-2xl shadow-lg md:h-16 md:w-16" />
+        <div className="min-w-0 flex-1">
+          <h2 id="ilova" className="font-display text-xl font-bold sm:text-2xl">{t('Android ilovasi', 'Приложение для Android')}</h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-white/80">
+            {t('Iymon’ni telefoningizga ilova sifatida o‘rnating — bosh ekrandan bir bosishda ochiladi. Fayl Google Play’dan emas, shu saytdan yuklanadi: o‘rnatishda «Noma’lum manbalardan o‘rnatish»ga ruxsat berish kerak bo‘ladi.', 'Установите Iymon на телефон как приложение — открывается одним касанием с главного экрана. Файл загружается не из Google Play, а с этого сайта: при установке нужно разрешить «Установку из неизвестных источников».')}
+          </p>
+          <p className="mt-1 text-xs text-white/60">{t('Android 5.0 va undan yuqori · 0,5 MB · versiya 1.0', 'Android 5.0 и выше · 0,5 МБ · версия 1.0')}</p>
+        </div>
+        <a
+          href="/downloads/iymon.apk"
+          download="iymon.apk"
+          className="tap-press inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-accent-400 px-5 py-2.5 text-sm font-bold text-primary-900 transition hover:bg-accent-500"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+          {t('APK yuklab olish', 'Скачать APK')}
+        </a>
+      </section>
+
       {/* ===== Manbalar ===== */}
       <section className="mt-5 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 md:mt-10 md:rounded-3xl md:p-8 dark:bg-neutral-900 dark:ring-white/10" aria-labelledby="manbalar">
         <SectionTitle id="manbalar">{t('Manbalar', 'Источники')}</SectionTitle>
