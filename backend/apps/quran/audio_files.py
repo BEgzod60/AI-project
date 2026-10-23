@@ -15,8 +15,12 @@ def reciter_dir(reciter):
 
 
 def is_local(reciter):
-    """Qorining hamma oyatlari siqib saqlangan bo'lsa — True."""
-    return (reciter_dir(reciter) / COMPLETE_MARKER).exists()
+    """Same-origin audio gateway has a complete local or R2 collection."""
+    from . import r2_storage
+
+    return reciter == 'afasy' and (
+        (reciter_dir(reciter) / COMPLETE_MARKER).exists() or r2_storage.enabled()
+    )
 
 
 def url_template():

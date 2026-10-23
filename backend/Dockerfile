@@ -15,7 +15,7 @@ ARG APP_UID=1000
 RUN useradd --uid ${APP_UID} --create-home app
 
 COPY --chown=app:app . .
-RUN chmod +x docker-entrypoint.sh && mkdir -p static media && chown app:app static media
+RUN chmod +x docker-entrypoint.sh && mkdir -p static media && chown app:app /app static media
 
 USER app
 

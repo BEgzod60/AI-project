@@ -2,7 +2,7 @@
 import type { StepImage } from './learning';
 
 export type StageKind = 'action' | 'posture' | 'recitation';
-export type Speed = 'sekin' | 'ortacha' | 'tez';
+export type Speed = 'sekin' | 'ortacha' | 'tez' | 'shaxsiy';
 export type Sensitivity = 'past' | 'ortacha' | 'yuqori';
 
 export interface Stage {
@@ -48,7 +48,7 @@ export interface BirgaRecitation {
 }
 
 export interface BirgaSettingsSchema {
-  speeds: Record<Speed, number>;
+  speeds: Record<Exclude<Speed, 'shaxsiy'>, number>;
   sensitivity: Record<Sensitivity, { rms: number; match: number }>;
   fallback_seconds: { min: number; max: number; default: number };
   recitation_seconds: { min: number; max: number };
@@ -66,6 +66,7 @@ export interface BirgaSettings {
   /** Brauzerning nutqni aniqlash xizmati (o'chirilsa — faqat qurilmadagi ovoz faolligi) */
   speech: boolean;
   offline: boolean;
+  durations?: Record<string, number>;
 }
 
 export interface PrayerPart {

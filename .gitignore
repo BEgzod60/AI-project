@@ -9,6 +9,10 @@ venv/
 db.sqlite3
 *.log
 media/
+/review-data/
+static/
+backend/static/
+backend/site_packages/
 
 # Node
 node_modules/
@@ -26,6 +30,7 @@ Thumbs.db
 
 # Env
 .env
+/backend/.env.review
 
 # TypeScript
 *.tsbuildinfo

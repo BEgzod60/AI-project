@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BirgaSession, BirgaSettings } from '../../types/birga';
-import { useVoiceActivity } from '../../hooks/useVoiceActivity';
-import { speechSupported, isBrave, useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useWakeLock } from '../../hooks/useScreenControls';
-import { arabicWords, matchRecitation } from '../../utils/birga/arabic';
-import { AYAH_HEARD, latinAyahs } from '../../utils/birga/latin';
-import { evaluateStage, expectedSeconds, scrollProgress, type AdvanceReason, type EngineResult } from '../../utils/birga/engine';
+import { formatDuration, stageSeconds } from '../../utils/birga/timing';
 import { SourceLine } from './Sources';
 import { prayerTitle, rakatLabel } from '../../utils/prayerNames';
-import { CountdownRing, MicIndicator, listeningState, stageImage, stageLabel, stageRecitation, type Gender, type ZamChoice } from './shared';
+import { stageImage, stageLabel, stageRecitation, type Gender, type ZamChoice } from './shared';
 import { useI18n } from '../../i18n';
 
 export interface SessionStats {
@@ -16,7 +12,7 @@ export interface SessionStats {
   rakats: number;
   recitations: number;
   stages: number;
-  byReason: Record<AdvanceReason | 'manual', number>;
+  byReason: Record<'timer' | 'manual', number>;
 }
 
 type TextTab = 'lotin' | 'arab' | 'mano' | 'tafsilot';
@@ -35,8 +31,6 @@ const TICK_MS = 200;
 
 export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, onFinish }: Props) {
   const stages = session.stages;
-  const schema = session.settings;
-  const sens = schema.sensitivity[settings.sensitivity];
   const { t, lang } = useI18n();
   const title = prayerTitle(session.category.slug, session.category.name, lang);
 
@@ -47,27 +41,11 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
   const stageStart = useRef(performance.now());
   const pausedElapsed = useRef(0);
   const sessionStart = useRef(Date.now());
-  const reasons = useRef<(AdvanceReason | 'manual')[]>([]);
+  const reasons = useRef<('timer' | 'manual')[]>([]);
   const textRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const finished = useRef(false);
-  // Zaxira taymer qachon boshlangani (AI tasdiqlay olmaganda)
-  const countdownFrom = useRef<number | null>(null);
-  // Shu bosqichda jami gapirilgan vaqt (soniya) va oxirgi tik vaqti
-  const spokeFor = useRef(0);
-  const lastTick = useRef(performance.now());
-  const [result, setResult] = useState<EngineResult>({ advance: null, countdownFrom: null, countdown: null });
-
-  const voice = useVoiceActivity(sens.rms);
-  const speechOn = settings.speech && speechSupported() && !isBrave();
   useWakeLock(settings.wake_lock);
-
-  // Mikrofon bir marta ishga tushiriladi; xato bo'lsa — vizual taymer davom etadi
-  const { start: startMic, stop: stopMic } = voice;
-  useEffect(() => {
-    void startMic();
-    return stopMic;
-  }, [startMic, stopMic]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(performance.now()), TICK_MS);
@@ -76,23 +54,20 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
 
   const stage = stages[index];
   const next = stages[index + 1];
-  // Nutq tanish faqat sura va duolarda kerak (ruku', sajdada — yo'q): mikrofon keraksiz qayta ulanmaydi.
-  // Android'da jimlikdan keyin gapira boshlaganda ulanadi (har ulanish ovoz chiqaradi).
-  const speech = useSpeechRecognition(speechOn && voice.status === 'active' && stage.kind === 'recitation', 'ar-SA', voice.speaking);
   const rec = stageRecitation(stage, session, zam);
   const bigText = rec ? rec.transliteration : stage.text;
   const zikr = stage.zikr ?? [];
-  const expected = useMemo(() => expectedSeconds(stage, rec?.transliteration ?? '', settings, schema), [stage, rec, settings, schema]);
-  const expectedWords = useMemo(() => (rec?.arabic ? arabicWords(rec.arabic.join(' ')) : []), [rec]);
+  const expected = useMemo(() => stageSeconds(stage, session, zam, settings), [stage, session, zam, settings]);
   const elapsed = paused ? pausedElapsed.current : (now - stageStart.current) / 1000;
+  const remaining = Math.max(0, Math.ceil(expected - elapsed));
+  const timerProgress = Math.min(1, Math.max(0, elapsed / expected));
 
-  const { reset: resetTranscript } = speech;
-  const goTo = useCallback((i: number, reason: AdvanceReason | 'manual') => {
+  const goTo = useCallback((i: number, reason: 'timer' | 'manual') => {
     if (finished.current) return;
     reasons.current[index] = reason;
     if (i >= stages.length) {
       finished.current = true;
-      const counts = { speech: 0, voice: 0, timer: 0, manual: 0 };
+      const counts = { timer: 0, manual: 0 };
       reasons.current.forEach((r) => { if (r) counts[r] += 1; });
       onFinish({
         seconds: (Date.now() - sessionStart.current) / 1000,
@@ -106,57 +81,26 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
     setIndex(Math.max(0, i));
     stageStart.current = performance.now();
     pausedElapsed.current = 0;
-    countdownFrom.current = null;
-    spokeFor.current = 0;
-    setResult({ advance: null, countdownFrom: null, countdown: null });
-    resetTranscript();
     setTab('lotin');
-    textRef.current?.scrollTo({ top: 0 });
-  }, [index, stages, session.rakats, onFinish, resetTranscript]);
+    if (textRef.current) textRef.current.scrollTop = 0;
+  }, [index, stages, session.rakats, onFinish]);
 
-  const match = expectedWords.length && speech.status === 'listening' ? matchRecitation(expectedWords, speech.transcript) : null;
-  // Lotincha (muslim.uz) oyatlar — tanilganlari yashil
-  const latin = rec?.arabic ? latinAyahs(rec.arabic, rec.transliteration, match?.indices ?? []) : null;
-
-  // Asosiy qaror: har tikda bir marta
   useEffect(() => {
-    if (paused) return;
-    const last = voice.lastVoiceAt.current;
-    const heard = last !== null && last >= stageStart.current;
-    const dt = Math.min(1, (now - lastTick.current) / 1000);
-    lastTick.current = now;
-    if (voice.speaking) spokeFor.current += dt;
-    const r = evaluateStage({
-      stage, elapsed, expected, fallback: settings.fallback,
-      voice: {
-        active: voice.status === 'active',
-        speaking: voice.speaking,
-        heard,
-        silence: heard ? (now - last!) / 1000 : elapsed,
-        spokeFor: spokeFor.current,
-      },
-      match,
-      matchThreshold: sens.match,
-      countdownFrom: countdownFrom.current,
-    });
-    countdownFrom.current = r.countdownFrom;
-    if (r.advance) goTo(index + 1, r.advance);
-    else setResult(r);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [now]);
+    if (!paused && elapsed >= expected) goTo(index + 1, 'timer');
+  }, [now, paused, elapsed, expected, goTo, index]);
 
-  // Uzun matn o'z-o'zidan pastga suriladi (qo'l tegizmasdan o'qish uchun):
-  // AI so'zlarni tanisa — o'qilayotgan oyat tepaga keladi; aks holda vaqt bo'yicha (tezroq)
-  const lastHeardAyah = latin ? latin.reduce((acc, a, i) => (a.heard > 0 ? i : acc), -1) : -1;
   useEffect(() => {
     const el = textRef.current;
     if (!el || tab !== 'lotin' || paused) return;
-    const max = el.scrollHeight - el.clientHeight;
-    if (max <= 0) return;
-    const node = lastHeardAyah >= 0 ? el.querySelector<HTMLElement>(`[data-ayah="${lastHeardAyah}"]`) : null;
-    const top = node ? node.offsetTop - el.clientHeight * 0.2 : max * scrollProgress(elapsed, expected);
-    el.scrollTo({ top: Math.min(max, Math.max(0, top)), behavior: 'smooth' });
-  }, [Math.floor(elapsed * 4), tab, lastHeardAyah, paused]); // eslint-disable-line react-hooks/exhaustive-deps
+    const overflow = el.scrollHeight - el.clientHeight;
+    if (overflow <= 0) return;
+    // Qisqa suralar sig'sa matn qimirlamaydi. Uzun matn esa yuqori qismdan boshlab
+    // kechikmay siljiydi; har tikda yangi smooth animatsiya boshlanmaydi.
+    const hold = Math.min(6, expected * 0.12);
+    const scrollTime = Math.min(expected * 0.5, Math.max(expected * 0.25, overflow / 65));
+    const progress = Math.min(1, Math.max(0, (elapsed - hold) / Math.max(1, scrollTime)));
+    el.scrollTop = overflow * progress;
+  }, [Math.floor(elapsed * 4), tab, paused, expected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ro'yxatda faol bosqich ko'rinib tursin — faqat ro'yxatning o'zi suriladi, sahifa emas
   useEffect(() => {
@@ -190,18 +134,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
 
   const curPart = session.parts.length > 1 ? session.parts.find((p) => p.index === session.part) : undefined;
   const partLabel = curPart ? rakatLabel(curPart.count, curPart.kind, lang) : undefined;
-  const listening = listeningState(voice.status, speech.status, speechOn);
-  const statusText = stage.kind !== 'recitation'
-    ? t('Taymer faqat taxminiy vaqt — amalni o‘z vaqtida bajaring.', 'Таймер показывает лишь примерное время — выполняйте действие в своём темпе.')
-    : voice.status !== 'active'
-      ? t('Mikrofon ishlamayapti — taxminiy vaqt bo‘yicha keyingi ko‘rsatma chiqadi.', 'Микрофон не работает — следующая подсказка появится по примерному времени.')
-      : !speechOn
-        ? result.countdown
-          ? t(`Jim bo‘ldingiz — ${Math.ceil(result.countdown.remaining)} soniyadan keyin keyingi ko‘rsatma. O‘qishni davom ettirsangiz, taymer to‘xtaydi.`, `Пауза — следующая подсказка через ${Math.ceil(result.countdown.remaining)} с. Продолжите читать, и таймер остановится.`)
-          : t(`O‘qing — ovozingiz faqat qurilmada kuzatiladi, taymer yo‘q. O‘qib bo‘lib jim bo‘lsangiz, keyingi ko‘rsatma chiqadi (zaxira: ${settings.fallback} soniya).`, `Читайте — голос отслеживается только на устройстве, таймера нет. Когда закончите и замолчите, появится следующая подсказка (запас: ${settings.fallback} с).`)
-      : result.countdown
-        ? t(`AI tasdiqlay olmadi — ${Math.ceil(result.countdown.remaining)} soniyadan keyin keyingi ko‘rsatma. O‘qishni davom ettirsangiz, taymer to‘xtaydi.`, `ИИ не смог подтвердить — следующая подсказка через ${Math.ceil(result.countdown.remaining)} с. Продолжите читать, и таймер остановится.`)
-        : t(`O‘qing — AI tinglayapti, taymer yo‘q. Tanib olsa o‘zi o‘tadi; tanimasa, jim bo‘lganingizdan keyin ${settings.fallback} soniyalik taymer boshlanadi.`, `Читайте — ИИ слушает, таймера нет. Если распознает, перейдёт сам; если нет — после паузы начнётся таймер на ${settings.fallback} с.`);
+  const statusText = t('Belgilangan vaqt tugaganda keyingi ko‘rsatma avtomatik chiqadi. Bu o‘qish tugaganini tasdiqlamaydi.', 'После заданного времени следующая подсказка появится автоматически. Это не подтверждает завершение чтения.');
   // Ruku'dan oldingi qiroat (zam sura yoki Fotiha): «Allohu akbar»ni oldindan eslatish.
   // Takbir matni — ruku' bosqichining o'zidagi manba zikri («Borishda: Allohu akbar»).
   // 3–4-rakatlarda zam sura yo'q: «Fotiha → Amiyn → Ruku'» — «Amiyn» o'tkazib yuborilib, undan keyingisi qaraladi.
@@ -211,9 +144,9 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
     ? ahead.zikr?.find((z) => /^allohu akbar/i.test(z.text))?.text ?? 'Allohu akbar'
     : null;
   // Qiroat oxiriga yaqinlashganda (yoki taymer boshlanganda) eslatma ajralib ko'rinadi
-  const takbirSoon = !!takbirBeforeRuku && (!!result.countdown || elapsed >= expected * 0.6);
+  const takbirSoon = !!takbirBeforeRuku && elapsed >= expected * 0.6;
   const img = stageImage(stage, gender);
-  const textSize = settings.large_text ? 'text-3xl leading-[1.6] md:text-5xl md:leading-[1.5]' : 'text-2xl leading-[1.7] md:text-[2rem] md:leading-[1.6]';
+  const textSize = settings.large_text ? 'text-3xl leading-[1.6] md:text-5xl md:leading-[1.5]' : 'text-xl leading-[1.55] md:text-[1.65rem] md:leading-[1.5]';
   const instruction = gender === 'ayol' && stage.text_female ? `${stage.text}\n\n${t('Ayollar uchun', 'Для женщин')}: ${stage.text_female}` : stage.text;
   const tabs: { id: TextTab; label: string; show: boolean }[] = [
     { id: 'lotin', label: rec ? t('Lotincha', 'Латиницей') : zikr.length || stage.kind === 'posture' ? t('O‘qiladi', 'Читается') : t('Matn', 'Текст'), show: true },
@@ -240,7 +173,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
             </h2>
             <span className="hidden items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/40 sm:inline-flex">{t('Haqiqiy namoz rejimi', 'Режим настоящего намаза')}</span>
           </div>
-          <p className="hidden text-[11px] text-white/50 sm:block">{t('AI ovoz chiqarmaydi, sizdan tasdiqlash so‘ramaydi.', 'ИИ не говорит вслух и не просит подтверждений.')}</p>
+          <p className="hidden text-[11px] text-white/50 sm:block">{t('Bosqichlar belgilangan vaqt bo‘yicha almashadi.', 'Этапы переключаются по заданному времени.')}</p>
         </div>
         {/* Telefonda progress alohida qatorda (oxirida) */}
         <div className="order-last flex w-full items-center gap-2 text-sm font-semibold tabular-nums sm:order-none sm:w-auto">
@@ -267,6 +200,17 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
         )}
       </header>
 
+      {index > 0 && (
+        <div aria-label={t('O‘tilgan bosqichlar', 'Пройденные этапы')} className="flex items-center gap-2 overflow-x-auto border-b border-emerald-400/15 bg-emerald-500/[0.06] px-3 py-2 lg:hidden">
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-emerald-300">{t('O‘tildi', 'Пройдено')}</span>
+          {stages.slice(0, index).reverse().map((doneStage) => (
+            <span key={doneStage.index} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-400/30">
+              <span aria-hidden="true">✓</span>{stageLabel(doneStage, session, zam)}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Bosqichlar ro'yxati */}
         <nav ref={navRef} aria-label={t('Namoz bosqichlari', 'Этапы намаза')} className="relative hidden min-h-0 overflow-y-auto border-r border-white/10 p-3 lg:block">
@@ -278,11 +222,11 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
               return (
                 <li key={s.index} data-stage={i}>
                   {firstOfRakat && <p className="mb-1 mt-3 px-2 text-[10px] font-bold uppercase tracking-wider text-accent-400/80 first:mt-0">{t(`${s.rakat}-rakat`, `${s.rakat}-й ракаат`)}</p>}
-                  <div className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm ${active ? 'bg-emerald-500/15 font-semibold text-white ring-1 ring-emerald-400/60' : done ? 'text-white/45' : 'text-white/75'}`}>
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${active ? 'bg-emerald-500 text-white' : done ? 'bg-white/10 text-emerald-300' : 'ring-1 ring-white/20'}`}>{done ? '✓' : i + 1}</span>
+                  <div className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm ${active ? 'bg-emerald-500/15 font-semibold text-white ring-1 ring-emerald-400/60' : done ? 'bg-emerald-500/10 font-semibold text-emerald-200 ring-1 ring-emerald-400/25' : 'text-white/75'}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${active ? 'bg-emerald-500 text-white' : done ? 'bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/30' : 'ring-1 ring-white/20'}`}>{done ? '✓' : i + 1}</span>
                     <span className="min-w-0">
                       <span className="block truncate">{stageLabel(s, session, zam)}</span>
-                      {s.timing && <span className="block text-[11px] text-white/45">~ {s.timing[0]}–{s.timing[1]} {t('soniya', 'с')}</span>}
+                      <span className={`block text-[11px] ${done ? 'text-emerald-300/65' : 'text-white/45'}`}>{stageSeconds(s, session, zam, settings)} {t('soniya', 'с')}</span>
                     </span>
                     {active && !paused && <span className="ml-auto h-0 w-0 border-y-[6px] border-l-[9px] border-y-transparent border-l-emerald-400" aria-hidden />}
                   </div>
@@ -294,7 +238,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
 
         {/* Asosiy qism */}
         <div className="flex min-h-0 min-w-0 flex-col">
-          {/* Telefonda: rasm + nom bir qatorda, mikrofon holati ostida to'liq kenglikda.
+          {/* Telefonda: rasm + nom bir qatorda, ixcham taymer bilan birga.
               Kattaroq ekranda: rasm chapda ikki qator bo'ylab. */}
           <div className="relative grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-b border-white/10 p-3 sm:gap-x-4 sm:p-4">
             <div className="relative aspect-[3/2] w-28 shrink-0 self-start overflow-hidden rounded-2xl bg-black ring-1 ring-white/10 min-[400px]:w-32 sm:row-span-2 sm:w-48 lg:w-60">
@@ -322,11 +266,17 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
             </div>
 
             <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 sm:col-span-1 sm:col-start-2 sm:self-end">
-              <MicIndicator state={listening} level={voice.level} speaking={voice.speaking} />
-              {result.countdown && (
-                <CountdownRing remaining={result.countdown.remaining} total={result.countdown.total} small />
-              )}
-              <p className="min-w-[12rem] flex-1 text-[11px] leading-snug text-white/65">{statusText}</p>
+              <div role="timer" aria-label={t(`Bosqich tugashiga ${remaining} soniya qoldi`, `До следующего этапа ${remaining} с`)} className="relative h-24 w-24 shrink-0" title={t('Keyingi ko‘rsatmagacha qolgan vaqt', 'Время до следующей подсказки')}>
+                <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90" aria-hidden="true">
+                  <circle cx="40" cy="40" r="34" fill="rgb(0 0 0 / 0.35)" stroke="rgb(255 255 255 / 0.13)" strokeWidth="5" />
+                  <circle cx="40" cy="40" r="34" fill="none" stroke={remaining <= 5 ? '#fbbf24' : '#34d399'} strokeWidth="5" strokeLinecap="round" strokeDasharray={2 * Math.PI * 34} strokeDashoffset={2 * Math.PI * 34 * timerProgress} className="transition-[stroke-dashoffset,stroke] duration-200" />
+                </svg>
+                <span className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <span className="text-xs font-semibold text-white/70">{t('Qoldi', 'Осталось')}</span>
+                  <span className="text-2xl font-extrabold leading-tight tabular-nums tracking-tight text-white sm:text-[1.75rem]">{formatDuration(remaining)}</span>
+                </span>
+              </div>
+              <p className="min-w-0 flex-1 text-[11px] leading-snug text-white/65">{statusText}</p>
             </div>
 
             {paused && (
@@ -392,16 +342,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
               {tab === 'lotin' && zikr.length === 0 && stage.kind === 'posture' && (
                 <p className="text-center text-base text-white/60">{t('Manbada bu holat uchun alohida zikr ko‘rsatilmagan.', 'В источнике для этого положения отдельный зикр не указан.')}</p>
               )}
-              {tab === 'lotin' && zikr.length === 0 && stage.kind !== 'posture' && latin && (
-                <p className={`text-center font-semibold text-white ${textSize}`}>
-                  {latin.map((a) => (
-                    <span key={a.number} data-ayah={a.number - 1} className={`transition-colors ${a.heard >= AYAH_HEARD ? 'text-emerald-300' : ''}`}>
-                      {a.label && <span className="text-white/35">{a.label}. </span>}{a.latin}{' '}
-                    </span>
-                  ))}
-                </p>
-              )}
-              {tab === 'lotin' && zikr.length === 0 && stage.kind !== 'posture' && !latin && <p className={`whitespace-pre-line text-center font-semibold text-white ${textSize}`}>{bigText}</p>}
+              {tab === 'lotin' && zikr.length === 0 && stage.kind !== 'posture' && <p className={`whitespace-pre-line text-center font-semibold text-white ${textSize}`}>{bigText}</p>}
               {tab === 'arab' && rec?.arabic && (
                 <p lang="ar" dir="rtl" className={`font-quran text-center text-white ${settings.large_text ? 'text-5xl leading-[2.2]' : 'text-4xl leading-[2.2]'}`}>
                   {rec.arabic.map((a, i) => <span key={i}>{a} <span className="text-accent-400">﴿{i + 1}﴾</span> </span>)}
@@ -420,9 +361,7 @@ export function BirgaLive({ session, settings, zam, gender, fullscreen, onExit, 
                 <SourceLine title={stage.source_title} url={stage.source_url} />
               )}
             </div>
-            {match && match.matched > 0 && (
-              <p className="mt-2 text-center text-[11px] text-emerald-300/80">{t('Tanilgan so‘zlar', 'Распознано слов')}: {match.matched} / {match.total}</p>
-            )}
+
           </div>
         </div>
       </div>

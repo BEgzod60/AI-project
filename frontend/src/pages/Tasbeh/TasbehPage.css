@@ -1,0 +1,177 @@
+.tasbeh-page {
+  max-width: 1600px;
+  color: #f7f4e9;
+}
+
+.tasbeh-page > .hero {
+  border: 1px solid rgba(225, 184, 95, .3);
+  box-shadow: 0 18px 44px rgba(0, 22, 13, .2);
+}
+
+.tasbeh-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 350px);
+  gap: 20px;
+  align-items: start;
+}
+
+.tasbeh-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 790px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 28px 28px;
+  overflow: hidden;
+  border: 1px solid rgba(221, 174, 77, .5);
+  border-radius: 28px;
+  background: #022318 url('/images/tasbeh/tasbeh-back.png') center center / cover no-repeat;
+  box-shadow: inset 0 0 100px rgba(0, 18, 11, .48), 0 28px 65px rgba(0, 20, 12, .28);
+}
+
+.tasbeh-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, rgba(0, 33, 20, .04), rgba(0, 19, 12, .24) 66%), linear-gradient(180deg, rgba(0, 24, 15, .48), rgba(0, 20, 13, .04) 31%, rgba(0, 16, 11, .12) 72%, rgba(0, 16, 10, .82));
+}
+
+.tasbeh-stage::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(248, 212, 123, .16);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.tasbeh-tabs {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  width: min(100%, 640px);
+  padding: 5px;
+  border: 1px solid rgba(207, 170, 86, .3);
+  border-radius: 20px;
+  background: rgba(0, 28, 19, .88);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .07);
+  backdrop-filter: blur(14px);
+}
+
+.tasbeh-tab { min-height: 54px; min-width: 0; }
+.tasbeh-tab[aria-pressed="true"] {
+  background: linear-gradient(135deg, #d9a839, #ffdd81 70%, #be852a) !important;
+  color: #09291b !important;
+  box-shadow: 0 3px 18px rgba(250, 191, 72, .42);
+}
+.tasbeh-tab:focus-visible,
+.tasbeh-controls button:focus-visible {
+  outline: 3px solid #ffdc80;
+  outline-offset: 3px;
+}
+
+.tasbeh-counter {
+  flex: 1;
+  width: 100%;
+  min-height: 620px;
+  padding: 28px 0 0;
+  background: transparent;
+  box-shadow: none;
+}
+.tasbeh-counter-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 51%, rgba(0, 44, 28, .52), rgba(0, 35, 22, .12) 39%, transparent 66%);
+}
+.tasbeh-zikr-label {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #fffdf2;
+  text-shadow: 0 3px 14px #00140c;
+}
+.tasbeh-bead-wrap { margin: 18px 0 18px; }
+.tasbeh-bead-ring { width: min(430px, 80vw); aspect-ratio: 1; filter: drop-shadow(0 18px 20px rgba(0, 0, 0, .5)); }
+.tasbeh-bead-ring > svg { position: relative; z-index: 1; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .65)); }
+.tasbeh-ring-ornament {
+  position: absolute;
+  inset: 19%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(224, 178, 79, .13) 0deg 1deg, transparent 1deg 9deg), radial-gradient(circle, #06402b 0%, #002416 73%);
+  box-shadow: inset 0 0 0 2px rgba(224, 178, 79, .62), inset 0 0 0 8px rgba(0, 30, 18, .92), inset 0 0 0 9px rgba(224, 178, 79, .32), 0 0 35px rgba(217, 167, 65, .16);
+}
+.tasbeh-active-bead { filter: drop-shadow(0 0 7px #ffd76c); animation: tasbeh-bead-pulse .55s ease-out; }
+@keyframes tasbeh-bead-pulse {
+  0% { opacity: .65; filter: drop-shadow(0 0 2px #ffd76c); }
+  50% { opacity: 1; filter: drop-shadow(0 0 13px #ffe8a0); }
+  100% { filter: drop-shadow(0 0 7px #ffd76c); }
+}
+.tasbeh-count-button {
+  z-index: 2;
+  inset: 22%;
+  border: 2px solid rgba(236, 192, 100, .72);
+  box-shadow: inset 0 0 40px rgba(0, 8, 4, .65), 0 0 0 5px rgba(1, 28, 18, .88), 0 0 0 7px rgba(229, 184, 90, .55), 0 0 35px rgba(0, 0, 0, .55);
+}
+.tasbeh-count-button span:first-child { font-family: Georgia, serif; }
+.tasbeh-controls {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+  margin: auto auto 0;
+  padding: 10px;
+  border: 1px solid rgba(222, 176, 77, .25);
+  border-radius: 24px;
+  background: rgba(0, 27, 19, .78);
+  backdrop-filter: blur(12px);
+}
+.tasbeh-controls > button { min-height: 74px; }
+.tasbeh-increment {
+  min-height: 88px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 0 2px rgba(227, 173, 62, .45), 0 0 28px rgba(229, 162, 40, .4) !important;
+}
+.tasbeh-side > div {
+  border: 1px solid rgba(30, 135, 88, .58);
+  background: linear-gradient(145deg, rgba(0, 38, 27, .98), rgba(0, 27, 19, .96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 16px 38px rgba(0, 24, 15, .22);
+}
+.tasbeh-side > div h3 { letter-spacing: .01em; }
+.tasbeh-side input[type="checkbox"] { min-width: 20px; }
+.tasbeh-side label:focus-within { outline: 2px solid #f5c65b; outline-offset: 4px; border-radius: 4px; }
+
+@media (max-width: 1050px) {
+  .tasbeh-layout { grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .tasbeh-side { display: block; width: 100%; min-width: 0; }
+  .tasbeh-side > div { width: 100%; margin: 0; }
+  .tasbeh-side > div + div { margin-top: 16px; }
+  .tasbeh-stage { min-height: 760px; }
+}
+
+@media (max-width: 640px) {
+  .tasbeh-page { width: 100%; max-width: 100%; min-width: 0; padding-left: 8px; padding-right: 8px; overflow-x: clip; }
+  .tasbeh-layout { display: flex; flex-direction: column; align-items: stretch; width: 100%; min-width: 0; gap: 12px; }
+  .tasbeh-stage { width: 100%; max-width: 100%; min-width: 0; min-height: 0; padding: 14px 10px 18px; border-radius: 20px; background-position: 54% center; }
+  .tasbeh-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 16px; }
+  .tasbeh-tab { min-height: 54px; }
+  .tasbeh-counter { width: 100%; min-width: 0; min-height: 0; padding-top: 26px; }
+  .tasbeh-bead-ring { width: min(340px, calc(100vw - 64px)); max-width: 100%; }
+  .tasbeh-bead-wrap { margin: 20px 0 16px; }
+  .tasbeh-controls { gap: 6px; padding: 7px; width: 100%; }
+  .tasbeh-controls > button { min-width: 0; padding: 10px 4px; font-size: 10px; }
+  .tasbeh-controls > button span { overflow-wrap: anywhere; }
+  .tasbeh-increment { min-height: 72px !important; font-size: 12px !important; }
+  .tasbeh-side { display: block; width: 100%; max-width: 100%; min-width: 0; }
+  .tasbeh-side > div { width: 100%; min-width: 0; overflow: hidden; }
+  .tasbeh-side > div + div { margin-top: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tasbeh-page *, .tasbeh-page *::before, .tasbeh-page *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

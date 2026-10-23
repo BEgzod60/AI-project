@@ -43,6 +43,15 @@ def daily_prayer_times(request):
     except PrayerTimesServiceError as exc:
         return _upstream_error(exc)
 
+    vid = request.query_params.get('vid')
+    if vid:
+        try:
+            from apps.developer.models import SiteVisitor
+            stats = SiteVisitor.record_visit(str(vid)[:64])
+            data['site_stats'] = stats
+        except Exception:
+            pass
+
     return Response(data)
 
 

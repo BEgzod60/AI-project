@@ -2,6 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Maxsus Zumrad/Yashil Skrollbar (Namoz o'rganish uslubida) ===== */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #10b981 rgba(0, 0, 0, 0.05);
+}
+
+html.dark {
+  scrollbar-color: #10b981 rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.birga-custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #34d399 transparent;
+}
+
+.birga-custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.birga-custom-scroll::-webkit-scrollbar-thumb {
+  background: #34d399;
+  border-radius: 999px;
+}
+
+.birga-duration-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.birga-duration-input::-webkit-inner-spin-button,
+.birga-duration-input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 @layer base {
   html {
     @apply antialiased;
@@ -20,9 +77,9 @@
   /* ===== Mobil dizayn tizimi =====
      Desktop (lg, 1024px+) qiymatlari o'zgarmaydi; telefon (320–767) va planshet (768–1023) uchun ixcham o'lchamlar. */
 
-  /* Sahifa konteyneri: telefonda tor chekka, desktopda avvalgidek */
+  /* Sahifa konteyneri: telefonda ikki chetdan ortiqcha bo'sh joy qolmasin (px-2), desktopda avvalgidek */
   .page {
-    @apply mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6;
+    @apply mx-auto max-w-7xl px-2 py-2 sm:px-4 sm:py-4 md:px-6 md:py-6;
   }
 
   /* Sahifa bo'limlari orasidagi masofa */

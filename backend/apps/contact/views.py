@@ -17,11 +17,51 @@ def _error(code, message, status):
     return Response({'error': {'code': code, 'message': message}}, status=status)
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @throttle_classes([])
 def contact_view(request):
-    """POST /api/aloqa/ — {name, contact, message} → loyiha egasining Telegram botiga."""
+    """POST /api/aloqa/ — Telegram botiga xabar; GET /api/aloqa/?stats=1&vid=... — tashriflar statistikasi."""
+    if request.method == 'GET' and request.query_params.get('stats') != '1':
+        return _error('method_not_allowed', 'Bu manzilga GET so‘rovi faqat stats=1 bilan yuboriladi.', 405)
+    if request.query_params.get('stats') == '1':
+        from apps.developer.models import SiteVisitor
+        vid = request.query_params.get('vid') or request.data.get('vid')
+        if vid:
+            stats = SiteVisitor.record_visit(str(vid)[:64])
+        else:
+            total_unique = SiteVisitor.objects.count()
+            from django.utils import timezone
+            today = timezone.localdate()
+            today_unique = SiteVisitor.objects.filter(last_seen__date=today).count()
+            from django.db import models
+            total_views = SiteVisitor.objects.aggregate(models.Sum('visit_count'))['visit_count__sum'] or 0
+            stats = {
+                'total_unique': total_unique,
+                'today_unique': today_unique,
+                'total_views': total_views,
+            }
+        return Response(stats)
+
     data = request.data if isinstance(request.data, dict) else {}
+    if str(data.get('website', '')).strip() == 'stats':
+        from apps.developer.models import SiteVisitor
+        vid = data.get('vid')
+        if vid:
+            stats = SiteVisitor.record_visit(str(vid)[:64])
+        else:
+            total_unique = SiteVisitor.objects.count()
+            from django.utils import timezone
+            today = timezone.localdate()
+            today_unique = SiteVisitor.objects.filter(last_seen__date=today).count()
+            from django.db import models
+            total_views = SiteVisitor.objects.aggregate(models.Sum('visit_count'))['visit_count__sum'] or 0
+            stats = {
+                'total_unique': total_unique,
+                'today_unique': today_unique,
+                'total_views': total_views,
+            }
+        return Response(stats)
+
     # Bot-tuzoq: odam ko'rmaydigan maydon to'ldirilgan bo'lsa — jim «qabul qilindi»
     if str(data.get('website', '')).strip():
         return Response({'ok': True})
@@ -52,3 +92,25 @@ def contact_view(request):
         return _error('upstream_error', 'Xabar yuborilmadi — birozdan keyin qayta urinib ko‘ring.', 502)
     cache.set(key, sent + 1, 60 * 60)
     return Response({'ok': True})
+
+
+@api_view(['GET', 'POST'])
+def site_stats_view(request):
+    """GET/POST /api/aloqa/stats/?vid=<id> — tashriflarni hisoblash va ko'rish."""
+    from apps.developer.models import SiteVisitor
+    vid = request.data.get('vid') if request.method == 'POST' else request.query_params.get('vid')
+    if vid:
+        stats = SiteVisitor.record_visit(str(vid)[:64])
+    else:
+        total_unique = SiteVisitor.objects.count()
+        from django.utils import timezone
+        today = timezone.localdate()
+        today_unique = SiteVisitor.objects.filter(last_seen__date=today).count()
+        from django.db import models
+        total_views = SiteVisitor.objects.aggregate(models.Sum('visit_count'))['visit_count__sum'] or 0
+        stats = {
+            'total_unique': total_unique,
+            'today_unique': today_unique,
+            'total_views': total_views,
+        }
+    return Response(stats)

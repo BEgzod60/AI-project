@@ -3,19 +3,19 @@ import { SearchBar } from '../common/SearchBar';
 import { RegionPicker } from '../prayerTimes/RegionPicker';
 import { LanguageSelect } from '../common/LanguageSelect';
 import { ThemeToggle } from '../common/ThemeToggle';
-import { MenuIcon, SearchIcon } from '../common/Icons';
+import { SearchIcon } from '../common/Icons';
+import { VisitorCounter } from '../common/VisitorCounter';
 import { useT } from '../../i18n';
 
 interface HeaderProps {
   region: string;
   onRegionChange: (region: string) => void;
-  onMenuClick: () => void;
 }
 
 const iconBtn =
   'tap-press inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800';
 
-export function Header({ region, onRegionChange, onMenuClick }: HeaderProps) {
+export function Header({ region, onRegionChange }: HeaderProps) {
   const t = useT();
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/90 px-3 py-2 backdrop-blur sm:px-4 md:px-6 md:py-3 dark:border-neutral-800 dark:bg-neutral-900/90">
@@ -36,14 +36,12 @@ export function Header({ region, onRegionChange, onMenuClick }: HeaderProps) {
             <SearchIcon />
           </Link>
           <RegionPicker value={region} onChange={onRegionChange} variant="compact" />
-          {/* Til va mavzu: telefonda menyu ichida */}
+          <VisitorCounter />
+          {/* Til va mavzu: faqat kompyuterda */}
           <div className="hidden items-center gap-3 md:flex">
             <LanguageSelect />
             <ThemeToggle />
           </div>
-          <button type="button" onClick={onMenuClick} aria-label={t('Menyuni ochish', 'Открыть меню')} className={`${iconBtn} lg:hidden`}>
-            <MenuIcon />
-          </button>
         </div>
       </div>
     </header>

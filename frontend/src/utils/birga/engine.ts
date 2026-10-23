@@ -19,7 +19,7 @@ export function expectedSeconds(stage: Stage, text: string, settings: BirgaSetti
     const tasbih = stage.zikr?.some((z) => z.times >= 3);
     return tasbih ? Math.max(MIN_TASBIH_SECONDS, value) : value;
   }
-  const cps = schema.speeds[settings.speed];
+  const cps = schema.speeds[settings.speed === 'shaxsiy' ? 'ortacha' : settings.speed];
   const { min, max } = schema.recitation_seconds;
   return Math.min(max, Math.max(min, Math.round(text.replace(/\s+/g, ' ').length / cps)));
 }

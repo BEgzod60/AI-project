@@ -1,0 +1,23 @@
+{
+  "file_count": 6236,
+  "total_bytes": 531495409,
+  "extensions": {
+    ".webm": 6236
+  },
+  "duplicate_groups": [],
+  "duplicate_file_count": 0,
+  "expected_afasy_files": 6236,
+  "missing_afasy_files": [],
+  "unexpected_afasy_files": [],
+  "database_references": {
+    "tanzil_symbolic": 12,
+    "local_url_count": 0,
+    "missing_local_urls": [],
+    "external_url_domains": {
+      "w.soundcloud.com": 2,
+      "muslim.uz": 3
+    },
+    "surah_audio_rows": 0
+  },
+  "rights": "Audio redistribution permission is not documented; upload blocked pending review."
+}

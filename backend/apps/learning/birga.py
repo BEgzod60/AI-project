@@ -81,8 +81,7 @@ AFTER_FARZ = [
 SAFETY_NOTICE = (
     "Hanafiy mazhabida namoz ichida ekrandan yoki mushafdan qarab qiroat qilish masalasi alohida hukmga ega. "
     "Bu rejimdan haqiqiy namozda foydalanishdan oldin masjid imomi yoki diniy mutaxassis bilan maslahatlashing. "
-    "Ilova namozni boshqarmaydi va o'qiganingizni tasdiqlamaydi: taymer faqat taxminiy vaqt, "
-    "ovozni aniqlash esa yordamchi belgi xolos."
+    "Ilova o‘qiganingizni tasdiqlamaydi: belgilangan vaqt faqat keyingi ko‘rsatmani chiqaradi."
 )
 
 
@@ -558,8 +557,7 @@ SOURCE_GROUPS_RU = {
 SAFETY_NOTICE_RU = (
     'В ханафитском мазхабе вопрос чтения с экрана или из мусхафа во время намаза имеет особое решение. '
     'Прежде чем использовать этот режим в настоящем намазе, посоветуйтесь с имамом мечети или специалистом. '
-    'Приложение не руководит намазом и не подтверждает ваше чтение: таймер — лишь примерное время, '
-    'а распознавание голоса — вспомогательный сигнал.'
+    'Приложение не подтверждает ваше чтение: заданное время лишь переключает подсказку.'
 )
 REASONS_RU = {
     'Bu namoz ma’lumotlari hali tasdiqlanmagan.': 'Данные этого намаза ещё не подтверждены.',

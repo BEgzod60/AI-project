@@ -212,7 +212,7 @@ export function SuralarPage() {
               </p>
             )}
             {/* Telefon/planshet: ixcham 2–3 ustunli panjara; desktop — ro'yxat */}
-            <ul className="-mx-1 grid grid-cols-2 gap-2 px-1 py-1 md:grid-cols-3 lg:block lg:max-h-[48rem] lg:space-y-2 lg:overflow-y-auto lg:pr-2" aria-label={t('Suralar ro‘yxati', 'Список сур')}>
+            <ul className="birga-custom-scroll -mx-1 grid grid-cols-2 gap-2 px-1 py-1 md:grid-cols-3 lg:block lg:max-h-[48rem] lg:space-y-2 lg:overflow-y-auto lg:pr-2" aria-label={t('Suralar ro‘yxati', 'Список сур')}>
               {surahs.map((surah) => (
                 <li key={surah.number} className="min-w-0">
                   <button type="button" onClick={() => choose(surah.number)} aria-current={surah.number === selected ? 'true' : undefined} className={`tap-press flex min-h-[56px] w-full items-center gap-2 rounded-2xl p-2.5 text-left ring-1 transition lg:min-h-0 lg:gap-3 lg:p-3 ${surah.number === selected ? 'bg-accent-100/60 ring-2 ring-accent-400 dark:bg-accent-500/10' : 'bg-white ring-black/5 hover:ring-primary-500/30 dark:bg-neutral-900 dark:ring-white/10'}`}>

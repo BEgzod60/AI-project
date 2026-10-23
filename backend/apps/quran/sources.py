@@ -14,11 +14,6 @@ AYAH_AUDIO_URL = 'https://tanzil.net/res/audio/{reciter}/{file}.mp3'
 AYAH_AUDIO_SOURCE = 'Tanzil Project — oyatma-oyat tilovat'
 AYAH_AUDIO_RECITERS = [
     ('afasy', 'Mishari Rashid al-Afasy'),
-    ('husary', 'Mahmud Xalil al-Husariy'),
-    ('minshawi', 'Muhammad Siddiq al-Minshoviy'),
-    ('abdulbasit', 'Abdulbosit Abdussamad'),
-    ('sudais', 'Abdurrahmon as-Sudays'),
-    ('ghamadi', 'Sa’d al-G‘omidiy'),
 ]
 
 NAMES_UZ = [

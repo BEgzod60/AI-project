@@ -208,9 +208,11 @@ export function AyahPlayer({ audio, surah, versesCount, current, onCurrentChange
         {current !== null && (
           <button type="button" onClick={stop} className="text-xs font-semibold text-neutral-500 underline">{t('To‘xtatish', 'Стоп')}</button>
         )}
-        <ReciterPicker reciters={audio.reciters} value={reciter} onChange={changeReciter} />
+        {audio.reciters.length > 1
+          ? <ReciterPicker reciters={audio.reciters} value={reciter} onChange={changeReciter} />
+          : <span className="ml-auto text-sm font-semibold text-neutral-700 dark:text-neutral-200">{audio.reciters[0]?.name}</span>}
       </div>
-      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{t('Audio yuklanmadi. Internetni tekshiring yoki boshqa qorini tanlang.', 'Аудио не загрузилось. Проверьте интернет или выберите другого чтеца.')}</p>}
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{t('Audio yuklanmadi. Internetni tekshiring.', 'Аудио не загрузилось. Проверьте интернет.')}</p>}
       {/* Telefonda pleer yopishib turadi — manba qatori pleer ostida alohida ko'rsatiladi (SurahView) */}
       <p className="mt-2 hidden text-xs text-neutral-500 lg:block">
         {t('Oyatma-oyat tilovat', 'Чтение по аятам')} · {t('Manba', 'Источник')}: <a href={audio.source_url} target="_blank" rel="noopener noreferrer" className="underline">{audio.source_title}</a>

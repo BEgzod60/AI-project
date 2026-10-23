@@ -1,9 +1,13 @@
+.git/
 venv/
 .venv/
+venv_new/
+site_packages/
 __pycache__/
 *.py[cod]
 *.log
 .env
+.env.*
 db.sqlite3
 db.sqlite3-*
 media/

@@ -65,7 +65,6 @@ export function MainLayout() {
         <Header
           region={region}
           onRegionChange={setRegion}
-          onMenuClick={() => setMenuOpen(true)}
         />
         <main className="pb-bottom-nav flex-1">
           <Outlet context={{ region, setRegion }} />

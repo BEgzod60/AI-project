@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import path from 'path';
 
+const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8001';
+
 export default defineConfig({
   // HTTPS=1 — telefonda mikrofonni sinash uchun (brauzer faqat HTTPS'da ruxsat beradi)
   plugins: [react(), ...(process.env.HTTPS ? [basicSsl()] : [])],
@@ -28,11 +30,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8001',
+        target: proxyTarget,
         changeOrigin: true,
       },
       '/media': {
-        target: 'http://127.0.0.1:8001',
+        target: proxyTarget,
         changeOrigin: true,
       },
     },

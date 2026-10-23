@@ -13,16 +13,39 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '..' / '.env.local')
 load_dotenv(BASE_DIR / '.env')
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-dev-only-key-change-in-production',
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+# SECURITY WARNING: keep the secret key used in production secret!
+_secret = os.environ.get('DJANGO_SECRET_KEY', '')
+if _secret:
+    SECRET_KEY = _secret
+elif DEBUG:
+    SECRET_KEY = 'django-insecure-dev-only-key-change-in-production'
+else:
+    raise RuntimeError(
+        'DJANGO_SECRET_KEY muhit o\'zgaruvchisi production\'da o\'rnatilishi shart!'
+    )
+
+# ALLOWED_HOSTS: localhost va maningiymonim.uz domeningiz
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        '127.0.0.1,localhost,backend,maningiymonim.uz,www.maningiymonim.uz'
+    ).split(',')
+    if h.strip()
+]
+
+# CSRF Trusted Origins (HTTPS so'rovlar uchun shart)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        'DJANGO_CSRF_TRUSTED_ORIGINS',
+        'https://maningiymonim.uz,https://www.maningiymonim.uz,http://localhost:5173,http://localhost:8090'
+    ).split(',')
+    if origin.strip()
+]
 
 # Application definition
 
@@ -106,11 +129,17 @@ USE_TZ = True
 
 # Static files
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Review deployment must not silently start without its private audio bucket.
+if os.environ.get('R2_AUDIO_ENABLED', '').lower() in ('1', 'true', 'yes'):
+    required_r2 = ('R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME')
+    if any(not os.environ.get(name) for name in required_r2):
+        raise RuntimeError('R2_AUDIO_ENABLED requires all private R2 connection settings')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -124,9 +153,26 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': None,
 }
 
-# CORS (frontend dev server)
+# Reverse proxy orqasida (Nginx HTTPS) ishlaganda HTTPS ni to'g'ri aniqlash uchun
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# CORS (frontend dev server va production)
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
+    origin.strip()
+    for origin in os.environ.get(
+        'DJANGO_CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173,https://maningiymonim.uz,https://www.maningiymonim.uz'
+    ).split(',')
+    if origin.strip()
 ]
+
+# ── Production xavfsizlik sozlamalari ─────────────────────────────────────
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True             # reverse proxy HTTPS ni X-Forwarded-Proto orqali bildiradi
+    SESSION_COOKIE_SECURE = True          # session cookie faqat HTTPS orqali
+    CSRF_COOKIE_SECURE = True             # CSRF cookie faqat HTTPS orqali
+    SECURE_CONTENT_TYPE_NOSNIFF = True    # X-Content-Type-Options: nosniff
+    X_FRAME_OPTIONS = 'DENY'              # clickjacking himoya
+    # Domen va HTTPS barcha yo'llarda tekshirilmaguncha 0 bo'lib qoladi.
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '0'))
+

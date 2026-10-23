@@ -6,6 +6,11 @@ import { useT } from '../../i18n';
 const SPEEDS = [0.75, 1, 1.25, 1.5];
 const UNAVAILABLE: [string, string] = ['Audio hozircha mavjud emas', 'Аудио пока недоступно'];
 
+function tanzilFallback(url: string): string | null {
+  const match = /^\/media\/quran\/([a-z0-9_-]+)\/([0-9]{6})\.webm$/.exec(url);
+  return match ? `https://tanzil.net/res/audio/${match[1]}/${match[2]}.mp3` : null;
+}
+
 /** Sahifada bir vaqtda faqat bitta audio o'ynasin */
 let currentlyPlaying: HTMLAudioElement | null = null;
 
@@ -301,7 +306,12 @@ export function AudioPlayer({ audio, label, reference }: AudioPlayerProps) {
           if (mode === 'verses' && verses && verseIdx < verses.length - 1) goVerse(verseIdx + 1);
         }}
         onError={() => {
-          if (src) setStatus('error');
+          const fallback = src ? tanzilFallback(src) : null;
+          if (fallback) {
+            pendingPlay.current = true;
+            if (mode === 'full') setFullUrl(fallback);
+            else setVerses((current) => current?.map((v, i) => i === verseIdx ? { ...v, url: fallback } : v) ?? null);
+          } else if (src) setStatus('error');
           setPlaying(false);
         }}
       />

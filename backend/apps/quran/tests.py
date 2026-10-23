@@ -1,7 +1,9 @@
 import tempfile
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 from django.test import TestCase, override_settings
+from botocore.exceptions import ClientError
 
 from apps.learning.models import Recitation
 
@@ -47,6 +49,7 @@ class QuranApiTests(TestCase):
         self.assertEqual(detail['ayahs'], [{'number': 1, 'arabic': 'بِسْمِ', 'meaning': 'Mehribon...'}])
         self.assertIsNone(detail['audio'])
         self.assertEqual(detail['ayah_audio']['reciters'][0]['id'], 'afasy')
+        self.assertEqual(len(detail['ayah_audio']['reciters']), 1)
         self.assertIn('{reciter}', detail['ayah_audio']['url_template'])
         self.assertEqual(self.client.get('/api/quran/surahs/115/').status_code, 404)
 
@@ -70,3 +73,52 @@ class LocalAudioTests(TestCase):
             self.assertTrue(audio_files.is_local('afasy'))
             self.assertEqual(audio_files.url_template(), '/media/quran/{reciter}/{file}.webm')
             self.assertEqual(audio_files.file_name(2, 255), '002255')
+
+    def test_local_stream_range_head_and_missing(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=Path(tmp)):
+            path = Path(tmp) / 'quran/afasy/001001.webm'
+            path.parent.mkdir(parents=True)
+            path.write_bytes(b'abcdefghij')
+            url = '/media/quran/afasy/001001.webm'
+            with patch('apps.quran.r2_storage.enabled', return_value=False):
+                response = self.client.get(url, HTTP_RANGE='bytes=2-5')
+                self.assertEqual(response.status_code, 206)
+                self.assertEqual(b''.join(response.streaming_content), b'cdef')
+                self.assertEqual(response['Content-Range'], 'bytes 2-5/10')
+                self.assertEqual(response['Accept-Ranges'], 'bytes')
+                self.assertEqual(response['Content-Type'], 'audio/webm')
+                self.assertEqual(self.client.head(url)['Content-Length'], '10')
+                self.assertEqual(self.client.get(url, HTTP_RANGE='bytes=99-').status_code, 416)
+                self.assertEqual(self.client.get('/media/quran/afasy/001002.webm').status_code, 404)
+                self.assertEqual(self.client.get('/media/quran/husary/001001.webm').status_code, 404)
+
+    def test_private_r2_stream_and_backend_error(self):
+        class Body:
+            def iter_chunks(self, chunk_size):
+                yield b'cdef'
+
+            def close(self):
+                pass
+
+        client = MagicMock()
+        client.head_object.return_value = {'ContentLength': 10, 'ETag': '"etag"'}
+        client.get_object.return_value = {'Body': Body()}
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=Path(tmp)):
+            with patch('apps.quran.r2_storage.enabled', return_value=True), \
+                 patch('apps.quran.r2_storage.client', return_value=client), \
+                 patch('apps.quran.r2_storage.bucket_name', return_value='private-review'):
+                response = self.client.get('/media/quran/afasy/001001.webm', HTTP_RANGE='bytes=2-5')
+                self.assertEqual(response.status_code, 206)
+                self.assertEqual(b''.join(response.streaming_content), b'cdef')
+                self.assertEqual(response['Cache-Control'], 'private, max-age=300')
+                client.get_object.assert_called_with(Bucket='private-review', Key='quran/afasy/001001.webm', Range='bytes=2-5')
+                client.head_object.side_effect = ClientError({'Error': {'Code': 'NoSuchKey'}}, 'HeadObject')
+                self.assertEqual(self.client.get('/media/quran/afasy/001001.webm').status_code, 404)
+                client.head_object.side_effect = ClientError({'Error': {'Code': 'AccessDenied'}}, 'HeadObject')
+                self.assertEqual(self.client.get('/media/quran/afasy/001001.webm').status_code, 502)
+
+    def test_r2_url_generation_keeps_existing_contract(self):
+        with patch('apps.quran.r2_storage.enabled', return_value=True):
+            self.assertTrue(audio_files.is_local('afasy'))
+            self.assertEqual(audio_files.url_template().format(reciter='afasy', file='001001'),
+                             '/media/quran/afasy/001001.webm')

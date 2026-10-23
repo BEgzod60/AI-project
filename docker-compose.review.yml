@@ -1,0 +1,38 @@
+# Future private review deployment. Run only after rights and migration approval.
+# The reverse proxy / tunnel in front of this loopback service must enforce Cloudflare Access.
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_UID: ${APP_UID:-1000}
+    env_file:
+      - path: ./backend/.env.review
+        required: true
+    environment:
+      DATABASE_URL: sqlite:////app/data/review.sqlite3
+      R2_AUDIO_ENABLED: "true"
+    volumes:
+      - ./review-data:/app/data
+      - static:/app/static
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; req=urllib.request.Request('http://127.0.0.1:8000/healthz/', headers={'X-Forwarded-Proto': 'https'}); urllib.request.urlopen(req, timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:${REVIEW_WEB_PORT:-8091}:80"
+    volumes:
+      - static:/srv/static:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  static:

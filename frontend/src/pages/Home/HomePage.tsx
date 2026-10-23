@@ -13,6 +13,7 @@ import {
   InfoIcon,
   MosqueIcon,
   SurahIcon,
+  TasbehIcon,
 } from '../../components/common/Icons';
 import { useT } from '../../i18n';
 import { Collapsible } from '../../components/common/Collapsible';
@@ -40,6 +41,7 @@ const FEATURES: { to: string; icon: JSX.Element; title: [string, string]; subtit
   { to: '/iymon', icon: <BookIcon />, title: ['Iymon', 'Иман'], subtitle: ['Iymon asoslari va aqidaviy masalalar', 'Основы веры и вероучения'] },
   { to: '/roza', icon: <CrescentIcon />, title: ['Ro‘za', 'Пост'], subtitle: ['Ro‘za ibodati va uning darajalari', 'Пост как поклонение и его степени'] },
   { to: '/zakot', icon: <CoinsIcon />, title: ['Zakot', 'Закят'], subtitle: ['Zakot hukmlari, nisob va kimlarga beriladi', 'Положения закята, нисаб и получатели'] },
+  { to: '/tasbeh', icon: <TasbehIcon />, title: ['Tasbeh', 'Тасбих'], subtitle: ['Zikrlar, 33/99 hisoblagich va kunlik maqsad', 'Зикры, счётчик 33/99 и дневная цель'] },
   { to: '/namoz-organish', icon: <GraduateIcon />, title: ['Namoz o‘rganish', 'Обучение намазу'], subtitle: ['Rasmlar va audio bilan bosqichma-bosqich', 'Пошагово, с картинками и аудио'] },
   { to: '/qibla', icon: <CompassIcon />, title: ['Qibla', 'Кибла'], subtitle: ['Qibla yo‘nalishini topish (kompas)', 'Направление киблы (компас)'] },
   { to: '/suralar', icon: <SurahIcon />, title: ['Suralar va oyatlar', 'Суры и аяты'], subtitle: ['Arabcha, o‘zbekcha va ma’nosi', 'Арабский текст и смысловой перевод'] },

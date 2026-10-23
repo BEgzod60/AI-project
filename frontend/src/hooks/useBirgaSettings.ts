@@ -7,8 +7,8 @@ function load(schema: BirgaSettingsSchema): BirgaSettings {
   const defaults = schema.defaults;
   try {
     const saved = JSON.parse(window.localStorage.getItem(KEY) ?? '{}') as Partial<BirgaSettings>;
-    const merged = { ...defaults, ...saved };
-    if (!(merged.speed in schema.speeds)) merged.speed = defaults.speed;
+    const merged = { ...defaults, ...saved, durations: saved.durations && typeof saved.durations === 'object' ? saved.durations : {} };
+    if (merged.speed !== 'shaxsiy' && !(merged.speed in schema.speeds)) merged.speed = defaults.speed;
     if (!(merged.sensitivity in schema.sensitivity)) merged.sensitivity = defaults.sensitivity;
     const { min, max } = schema.fallback_seconds;
     merged.fallback = Math.min(max, Math.max(min, Number(merged.fallback) || defaults.fallback));

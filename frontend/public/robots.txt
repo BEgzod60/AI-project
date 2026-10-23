@@ -1,0 +1,7 @@
+# maningiymonim.uz — Iymon islomiy ta'lim platformasi
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://maningiymonim.uz/sitemap.xml

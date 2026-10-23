@@ -16,6 +16,7 @@ from .auth import api_key_required as k
 
 dev_urlpatterns = [
     path('keys/', views.create_key, name='api-key-create'),
+    path('stats/', views.site_stats_view, name='site-stats'),
 ]
 
 v1_urlpatterns = [

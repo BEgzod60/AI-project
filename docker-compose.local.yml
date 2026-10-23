@@ -1,0 +1,5 @@
+# Lokal HTTP sinovi uchun: production compose va backend/.env qiymatlari saqlanadi.
+services:
+  backend:
+    environment:
+      DJANGO_DEBUG: "true"

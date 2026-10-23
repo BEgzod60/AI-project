@@ -3,8 +3,7 @@ import { fmtTime } from './shared';
 import { useT } from '../../i18n';
 
 export function BirgaFinish({ name, partLabel, stats, onAgain, onExit }: { name: string; partLabel?: string; stats: SessionStats; onAgain: () => void; onExit: () => void }) {
-  const detected = stats.byReason.speech + stats.byReason.voice;
-  const automatic = detected + stats.byReason.timer;
+  const automatic = stats.byReason.timer;
   const t = useT();
   return (
     <div className="mx-auto max-w-lg p-5 text-center sm:p-8" role="status">
@@ -20,7 +19,7 @@ export function BirgaFinish({ name, partLabel, stats, onAgain, onExit }: { name:
           [t('Rakatlar', 'Ракааты'), `${stats.rakats}`],
           [t('Davomiylik', 'Длительность'), fmtTime(stats.seconds)],
           [t('Sura va duolar', 'Суры и дуа'), t(`${stats.recitations} ta`, String(stats.recitations))],
-          [t('Ovoz bilan aniqlangan', 'Распознано по голосу'), automatic ? `${detected} / ${automatic}` : '—'],
+          [t('Avtomatik o‘tgan', 'Автоматически'), `${automatic} / ${stats.stages}`],
         ].map(([k, v]) => (
           <div key={k} className="rounded-xl bg-black/30 p-3 ring-1 ring-white/10">
             <dt className="text-[11px] text-white/55">{k}</dt>
@@ -29,8 +28,7 @@ export function BirgaFinish({ name, partLabel, stats, onAgain, onExit }: { name:
         ))}
       </dl>
       <p className="mt-3 text-[11px] leading-relaxed text-white/45">
-        {t('Nutq bo‘yicha', 'По речи')}: {stats.byReason.speech} · {t('ovoz faolligi bo‘yicha', 'по голосу')}: {stats.byReason.voice} · {t('taymer', 'таймер')}: {stats.byReason.timer}
-        {stats.byReason.manual ? ` · ${t('qo‘lda', 'вручную')}: ${stats.byReason.manual}` : ''}. {t('Bu raqamlar namoz to‘g‘ri o‘qilganini tasdiqlamaydi.', 'Эти цифры не подтверждают правильность намаза.')}
+        {t('Vaqt bo‘yicha', 'По времени')}: {stats.byReason.timer}{stats.byReason.manual ? ` · ${t('qo‘lda', 'вручную')}: ${stats.byReason.manual}` : ''}. {t('Bu raqamlar namoz to‘g‘ri o‘qilganini tasdiqlamaydi.', 'Эти цифры не подтверждают правильность намаза.')}
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-2">

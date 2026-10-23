@@ -67,3 +67,38 @@ class ApiKey(models.Model):
                 usage_day=today, usage_count=1, total_requests=F('total_requests') + 1, last_used_at=now,
             )
         return ApiKey.objects.values_list('usage_count', flat=True).get(pk=self.pk)
+
+
+class SiteVisitor(models.Model):
+    """Saytga tashrif buyuruvchilar hisoblagichi (kunlik va umumiy)."""
+    visitor_id = models.CharField('Noyob tashrifchi ID (anonim)', max_length=64, db_index=True)
+    first_seen = models.DateTimeField('Birinchi tashrif', auto_now_add=True)
+    last_seen = models.DateTimeField('Oxirgi tashrif', auto_now=True)
+    visit_count = models.PositiveIntegerField('Tashriflar soni', default=1)
+
+    class Meta:
+        verbose_name = 'Tashrifchi'
+        verbose_name_plural = 'Tashrifchilar'
+
+    @classmethod
+    def record_visit(cls, visitor_id: str):
+        if not visitor_id or len(visitor_id) > 64:
+            visitor_id = 'unknown'
+        visitor, created = cls.objects.get_or_create(
+            visitor_id=visitor_id,
+            defaults={'visit_count': 1}
+        )
+        if not created:
+            cls.objects.filter(pk=visitor.pk).update(
+                visit_count=F('visit_count') + 1,
+                last_seen=timezone.now()
+            )
+        total_unique = cls.objects.count()
+        today = timezone.localdate()
+        today_unique = cls.objects.filter(last_seen__date=today).count()
+        total_views = cls.objects.aggregate(models.Sum('visit_count'))['visit_count__sum'] or 0
+        return {
+            'total_unique': total_unique,
+            'today_unique': today_unique,
+            'total_views': total_views,
+        }

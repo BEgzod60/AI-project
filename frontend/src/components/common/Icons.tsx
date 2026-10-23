@@ -115,3 +115,11 @@ export const QuoteIcon = (p: IconProps) => (
     <path d="M9.5 6C6.5 7 4.5 9.6 4.5 13v5h6v-6H7.6c.2-1.9 1.3-3.3 2.9-4L9.5 6Zm10 0c-3 1-5 3.6-5 7v5h6v-6h-2.9c.2-1.9 1.3-3.3 2.9-4l-1-2Z" />
   </svg>
 );
+
+export const TasbehIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="11" r="7" strokeDasharray="2 3" strokeWidth="2.2" />
+    <circle cx="12" cy="4" r="1.5" fill="currentColor" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v3m-1.5 1.5h3" />
+  </Svg>
+);

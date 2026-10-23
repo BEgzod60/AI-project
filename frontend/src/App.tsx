@@ -23,6 +23,7 @@ const SearchPage = lazy(() => import('./pages/Search/SearchPage').then((m) => ({
 const LearningPage = lazy(() => import('./pages/Learning/LearningPage').then((m) => ({ default: m.LearningPage })));
 const SuralarPage = lazy(() => import('./pages/Suralar/SuralarPage').then((m) => ({ default: m.SuralarPage })));
 const QiblaPage = lazy(() => import('./pages/Qibla/QiblaPage').then((m) => ({ default: m.QiblaPage })));
+const TasbehPage = lazy(() => import('./pages/Tasbeh/TasbehPage').then((m) => ({ default: m.TasbehPage })));
 const LessonPage = lazy(() => import('./pages/Learning/LessonPage').then((m) => ({ default: m.LessonPage })));
 
 function PageLoading() {
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="qidiruv" element={<SearchPage />} />
               <Route path="namoz-organish" element={<LearningPage />} />
               <Route path="namoz-organish/:slug" element={<LessonPage />} />
+              <Route path="tasbeh" element={<TasbehPage />} />
               <Route path="qibla" element={<QiblaPage />} />
               <Route path="suralar" element={<SuralarPage />} />
               <Route path="loyiha-haqida" element={<AboutPage />} />
