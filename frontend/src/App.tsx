@@ -12,8 +12,6 @@ const NamozPage = lazy(() => import('./pages/Namoz/NamozPage').then((m) => ({ de
 const NamozTopicPage = lazy(() => import('./pages/Namoz/NamozTopicPage').then((m) => ({ default: m.NamozTopicPage })));
 const PrayerTimesPage = lazy(() => import('./pages/PrayerTimes/PrayerTimesPage').then((m) => ({ default: m.PrayerTimesPage })));
 const IymonPage = lazy(() => import('./pages/Iymon/IymonPage').then((m) => ({ default: m.IymonPage })));
-const AboutPage = lazy(() => import('./pages/About/AboutPage').then((m) => ({ default: m.AboutPage })));
-const DeveloperPage = lazy(() => import('./pages/Developer/DeveloperPage').then((m) => ({ default: m.DeveloperPage })));
 const RozaPage = lazy(() => import('./pages/Roza/RozaPage').then((m) => ({ default: m.RozaPage })));
 const RozaTopicPage = lazy(() => import('./pages/Roza/RozaTopicPage').then((m) => ({ default: m.RozaTopicPage })));
 const ZakotPage = lazy(() => import('./pages/Zakot/ZakotPage').then((m) => ({ default: m.ZakotPage })));
@@ -57,8 +55,6 @@ export default function App() {
               <Route path="tasbeh" element={<TasbehPage />} />
               <Route path="qibla" element={<QiblaPage />} />
               <Route path="suralar" element={<SuralarPage />} />
-              <Route path="loyiha-haqida" element={<AboutPage />} />
-              <Route path="dasturchilar" element={<DeveloperPage />} />
             </Route>
             {/* Xato sahifasi — to'liq ekran, sidebar va header'siz */}
             <Route path="*" element={<NotFoundPage />} />

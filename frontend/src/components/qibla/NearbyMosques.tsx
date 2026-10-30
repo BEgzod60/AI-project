@@ -406,7 +406,7 @@ export function NearbyMosques({ location, onPickLocation, pickRequest = 0 }: Pro
   );
 
   const map = (
-    <div className={`relative h-[60svh] max-h-[30rem] min-h-[20rem] overflow-hidden rounded-2xl ring-1 sm:h-[30rem] lg:h-[34rem] lg:max-h-none ${picking ? 'ring-2 ring-accent-400' : 'ring-black/5 dark:ring-white/10'}`}>
+    <div className={`relative z-0 isolate h-[60svh] max-h-[30rem] min-h-[20rem] overflow-hidden rounded-2xl ring-1 sm:h-[30rem] lg:h-[34rem] lg:max-h-none ${picking ? 'ring-2 ring-accent-400' : 'ring-black/5 dark:ring-white/10'}`}>
       <Suspense fallback={<Loading label={t('Xarita yuklanmoqda...', 'Загрузка карты...')} />}>
         <MosqueMap
           center={location}
@@ -425,18 +425,18 @@ export function NearbyMosques({ location, onPickLocation, pickRequest = 0 }: Pro
         />
       </Suspense>
       {notice && !picking && (
-        <p role="status" className="pointer-events-none absolute left-14 right-3 top-3 z-[500] rounded-xl bg-emerald-700/95 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg motion-safe:animate-fade-in">
+        <p role="status" className="pointer-events-none absolute left-14 right-3 top-3 z-10 rounded-xl bg-emerald-700/95 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg motion-safe:animate-fade-in">
           ✓ {notice}
         </p>
       )}
       {picking && (
         <>
-          <p className="pointer-events-none absolute left-14 right-3 top-3 z-[500] rounded-xl bg-primary-900/90 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg">
+          <p className="pointer-events-none absolute left-14 right-3 top-3 z-10 rounded-xl bg-primary-900/90 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg">
             {pending
               ? t('Oltin belgini sudrab aniqlashtiring, so‘ng «Tanlandi» tugmasini bosing', 'Перетащите золотую метку для точности, затем нажмите «Выбрать»')
               : t('Turgan joyingizni xaritada bosing', 'Нажмите на карте, где вы находитесь')}
           </p>
-          <div className="absolute inset-x-3 bottom-8 z-[500] flex gap-2 sm:left-auto sm:w-80">
+          <div className="absolute inset-x-3 bottom-8 z-10 flex gap-2 sm:left-auto sm:w-80">
             <button
               type="button"
               onClick={cancelPicking}

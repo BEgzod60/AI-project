@@ -35,23 +35,8 @@ def search_view(request):
     """GET /api/search/?q=tahorat&category=namoz — Namoz va Iymon bo'limlari bo'yicha qidiruv;
        GET /api/search/?stats=1&vid=... — sayt tashrifchilari va ko'rishlar statistikasi."""
     if request.query_params.get('stats') == '1':
-        from apps.developer.models import SiteVisitor
-        vid = request.query_params.get('vid')
-        if vid:
-            stats = SiteVisitor.record_visit(str(vid)[:64])
-        else:
-            total_unique = SiteVisitor.objects.count()
-            from django.utils import timezone
-            today = timezone.localdate()
-            today_unique = SiteVisitor.objects.filter(last_seen__date=today).count()
-            from django.db import models
-            total_views = SiteVisitor.objects.aggregate(models.Sum('visit_count'))['visit_count__sum'] or 0
-            stats = {
-                'total_unique': total_unique,
-                'today_unique': today_unique,
-                'total_views': total_views,
-            }
-        return Response(stats)
+        from apps.developer.views import site_stats_view
+        return site_stats_view(request._request)
 
     query = (request.query_params.get('q') or '').strip()[:100]
     category = request.query_params.get('category') or ''

@@ -38,7 +38,7 @@ export function LanguageSelect({ align = 'right' }: { align?: 'left' | 'right' }
         <span className="sm:hidden">{current.short}</span>
       </button>
       {open && (
-        <ul role="listbox" aria-label={t('Til', 'Язык')} className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} z-40 mt-2 w-40 overflow-hidden rounded-2xl bg-white p-1 shadow-xl ring-1 ring-black/10 dark:bg-neutral-800 dark:ring-white/10`}>
+        <ul role="listbox" aria-label={t('Til', 'Язык')} className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} z-50 mt-2 w-40 overflow-hidden rounded-2xl bg-white p-1 shadow-xl ring-1 ring-black/10 dark:bg-neutral-800 dark:ring-white/10`}>
           {LANGS.map((l) => (
             <li key={l.id} role="option" aria-selected={l.id === lang}>
               <button

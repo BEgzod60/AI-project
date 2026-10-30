@@ -5,6 +5,7 @@ import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { DEFAULT_REGION, REGIONS, REGION_STORAGE_KEY } from '../../utils/constants';
 import { useT } from '../../i18n';
+import { VisitorTracker } from '../common/VisitorTracker';
 
 export function MainLayout() {
   const t = useT();
@@ -46,7 +47,8 @@ export function MainLayout() {
   }, [region]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen min-w-0 max-w-full overflow-x-clip">
+      <VisitorTracker />
       {/* Mobil qatlam: menyuga bosilganda fon */}
       <button
         type="button"
@@ -61,7 +63,7 @@ export function MainLayout() {
 
       <Sidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} onClose={() => setMenuOpen(false)} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-clip">
         <Header
           region={region}
           onRegionChange={setRegion}

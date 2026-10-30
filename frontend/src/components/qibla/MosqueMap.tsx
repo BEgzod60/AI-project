@@ -16,7 +16,7 @@ interface Props {
   /** Belgilangan, lekin hali «Tanlandi» bosilmagan nuqta */
   pending: LatLon | null;
   onPick: (point: LatLon) => void;
-  /** Joy xaritada tanlangan — yangi markazga yaqin masshtabda o'tiladi (butun doiraga uzoqlashmaydi) */
+  /** Joy xaritada tanlangan — yangi markaz atrofidagi 3 km ko'rinadi. */
   keepView?: boolean;
 }
 
@@ -112,7 +112,7 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
       markers.current.set(m.id, marker);
     }
 
-    boundsRef.current = L.latLng(center.lat, center.lon).toBounds(radius * 2);
+    boundsRef.current = L.latLng(center.lat, center.lon).toBounds((keepViewRef.current ? 3000 : radius) * 2);
     const centerKey = `${center.lat},${center.lon}`;
     const centerChanged = centerKey !== lastCenter.current;
     const radiusChanged = radius !== lastRadius.current;
@@ -120,8 +120,8 @@ export default function MosqueMap({ center, radius, mosques, activeId, onSelect,
     lastRadius.current = radius;
     if (!elRef.current?.offsetWidth) return;
     if (keepViewRef.current && centerChanged) {
-      // Xaritada tanlangan joy — o'sha nuqtada, yaqin masshtabda qolinadi (butun doiraga uzoqlashmaydi)
-      map.setView([center.lat, center.lon], Math.max(map.getZoom(), 16));
+      // Tanlangan joy atrofida taxminan 3 km masofa ko'rinsin.
+      map.fitBounds(boundsRef.current, { padding: [16, 16] });
     } else if (centerChanged || radiusChanged || !keepViewRef.current) {
       map.fitBounds(boundsRef.current, { padding: [16, 16] });
     }

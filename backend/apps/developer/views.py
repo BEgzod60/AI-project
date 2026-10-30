@@ -74,21 +74,22 @@ def key_status(request):
 
 @api_view(['GET', 'POST'])
 def site_stats_view(request):
-    """GET /api/dev/stats/?vid=<id> yoki POST /api/dev/stats/ — tashriflarni hisoblash va ko'rish."""
+    """Tashrifni anonim qayd etish; statistikani faqat admin ko'radi."""
     from .models import SiteVisitor
     vid = request.data.get('vid') if request.method == 'POST' else request.query_params.get('vid')
     if vid:
-        stats = SiteVisitor.record_visit(str(vid)[:64])
-    else:
-        total_unique = SiteVisitor.objects.count()
-        from django.utils import timezone
-        today = timezone.localdate()
-        today_unique = SiteVisitor.objects.filter(last_seen__date=today).count()
-        from django.db import models
-        total_views = SiteVisitor.objects.aggregate(models.Sum('visit_count'))['visit_count__sum'] or 0
-        stats = {
-            'total_unique': total_unique,
-            'today_unique': today_unique,
-            'total_views': total_views,
-        }
-    return Response(stats)
+        SiteVisitor.record_visit(str(vid)[:64])
+    if not request.user.is_staff:
+        return Response({'ok': True}) if vid else Response({'detail': 'Admin ruxsati kerak.'}, status=403)
+    return Response(visitor_totals())
+
+
+def visitor_totals():
+    from django.db.models import Sum
+    from django.utils import timezone
+    from .models import SiteVisitor
+    return {
+        'total_unique': SiteVisitor.objects.count(),
+        'today_unique': SiteVisitor.objects.filter(last_seen__date=timezone.localdate()).count(),
+        'total_views': SiteVisitor.objects.aggregate(total=Sum('visit_count'))['total'] or 0,
+    }

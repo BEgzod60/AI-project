@@ -151,7 +151,7 @@ export function RegionPicker({ value, onChange, variant = 'hero', align = 'left'
 
       {open && (
         <div
-          className={`top-full z-40 mt-2 rounded-3xl ${
+          className={`top-full z-50 mt-2 rounded-3xl ${
             compact
               ? // Mobilda header kengligida (header backdrop-blur — fixed uchun o'rab turuvchi blok), kattada tugma ostida o'ngda
                 'fixed inset-x-4 origin-top sm:absolute sm:inset-x-auto sm:right-0 sm:w-[26rem] sm:origin-top-right'

@@ -8,8 +8,6 @@ import {
   CompassIcon,
   GraduateIcon,
   HomeIcon,
-  InfoIcon,
-  CodeIcon,
   CloseIcon,
   MosqueIcon,
   QuoteIcon,
@@ -19,7 +17,6 @@ import {
 import { useT } from '../../i18n';
 import { LanguageSelect } from '../common/LanguageSelect';
 import { ThemeToggle } from '../common/ThemeToggle';
-import { VisitorCounter } from '../common/VisitorCounter';
 
 interface NavItem {
   to: string;
@@ -38,8 +35,6 @@ const navItems: NavItem[] = [
   { to: '/namoz-organish', icon: <GraduateIcon />, label: ['Namoz o‘rganish', 'Обучение намазу'] },
   { to: '/qibla', icon: <CompassIcon />, label: ['Qibla', 'Кибла'] },
   { to: '/suralar', icon: <SurahIcon />, label: ['Suralar va oyatlar', 'Суры и аяты'] },
-  { to: '/dasturchilar', icon: <CodeIcon />, label: ['API (dasturchilar)', 'API (разработчикам)'] },
-  { to: '/loyiha-haqida', icon: <InfoIcon />, label: ['Loyiha haqida', 'О проекте'] },
 ];
 
 export function Sidebar({ open, onNavigate, onClose }: { open?: boolean; onNavigate?: () => void; onClose?: () => void }) {
@@ -113,9 +108,6 @@ export function Sidebar({ open, onNavigate, onClose }: { open?: boolean; onNavig
           {t('"Albatta, zikr qilish mo‘minlarning qalblarini tinchlantiradi."', '«Разве не поминанием Аллаха утешаются сердца?»')}
         </p>
         <p className="mt-2 text-xs text-white/75 drop-shadow">{t('(Ra’d surasi, 28-oyat)', '(Сура «Гром», 13:28, пер. Э. Кулиева)')}</p>
-        <div className="mt-3">
-          <VisitorCounter />
-        </div>
       </div>
     </aside>
   );

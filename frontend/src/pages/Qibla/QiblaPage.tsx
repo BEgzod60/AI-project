@@ -515,7 +515,7 @@ export function QiblaPage() {
         </div>
 
         {/* Xarita: shimol yuqorida, Ka'baga eng qisqa yo'l */}
-        <div ref={mapRef} className="h-[18rem] overflow-hidden rounded-2xl ring-1 ring-black/5 sm:h-[24rem] lg:col-span-2 min-[1400px]:col-span-1 min-[1400px]:h-auto dark:ring-white/10">
+        <div ref={mapRef} className="relative z-0 isolate h-[18rem] overflow-hidden rounded-2xl ring-1 ring-black/5 sm:h-[24rem] lg:col-span-2 min-[1400px]:col-span-1 min-[1400px]:h-auto dark:ring-white/10">
           <Suspense fallback={<Loading label={t('Xarita yuklanmoqda...', 'Загрузка карты...')} />}>
             <QiblaMap from={location} label={place.short} bearing={bearing} distance={distance} accuracy={place.source === 'gps' ? place.accuracy : undefined} />
           </Suspense>

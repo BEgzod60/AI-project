@@ -36,10 +36,15 @@ function screenAngle(): number {
   return Number(angle) || 0;
 }
 
-/** Burchaklarni silliqlash (aylana bo'ylab: 359° -> 1° sakrashsiz) */
-function smooth(prev: number | null, next: number, k = 0.25): number {
+/** Burchaklarni adaptiv silliqlash:
+ * - Katta burilishlarda (diff > 12°) kompas tez (85%) yetib oladi, qotib qolish yo'qoladi.
+ * - Kichik titrashlarda (diff < 5°) yumshoq (40%) ushlab turadi.
+ */
+function smooth(prev: number | null, next: number): number {
   if (prev === null) return next;
   const diff = ((next - prev + 540) % 360) - 180;
+  const absDiff = Math.abs(diff);
+  const k = absDiff > 30 ? 0.95 : absDiff > 12 ? 0.8 : 0.45;
   return (prev + diff * k + 360) % 360;
 }
 
@@ -82,14 +87,12 @@ export function useCompass() {
       }
     }
 
-    const absoluteEvent = 'ondeviceorientationabsolute' in window;
-    const eventName = absoluteEvent ? 'deviceorientationabsolute' : 'deviceorientation';
     let gotAny = false;
     let gotValid = false;
 
     const onOrientation = (event: Event) => {
       const e = event as OrientationEventIOS;
-      // Sensorsiz qurilmalar (masalan, kompyuter) bo'sh qiymatli hodisa yuborishi mumkin — e'tiborga olinmaydi
+      // Sensorsiz qurilmalar (masalan, kompyuter) bo'sh qiymatli hodisa yuborishi mumkin
       if (e.alpha === null && typeof e.webkitCompassHeading !== 'number') return;
       gotAny = true;
       let value: number | null = null;
@@ -104,10 +107,10 @@ export function useCompass() {
           setStatus('unreliable');
           return;
         }
-      } else if ((absoluteEvent || e.absolute) && typeof e.alpha === 'number') {
-        value = 360 - e.alpha;
+      } else if (typeof e.alpha === 'number') {
+        value = (360 - e.alpha) % 360;
       } else {
-        return; // nisbiy yo'nalish — kompas uchun yaroqsiz
+        return;
       }
 
       gotValid = true;
@@ -120,13 +123,17 @@ export function useCompass() {
       setStatus('active');
     };
 
-    window.addEventListener(eventName, onOrientation);
+    // Android/Chrome va boshqa brauzerlar uchun absolute va standard hodisalarni tinglash
+    window.addEventListener('deviceorientationabsolute', onOrientation as EventListener, true);
+    window.addEventListener('deviceorientation', onOrientation as EventListener, true);
+
     const timer = window.setTimeout(() => {
       if (!gotValid) setStatus(gotAny ? 'unreliable' : 'unsupported');
     }, FIRST_READING_TIMEOUT);
 
     cleanup.current = () => {
-      window.removeEventListener(eventName, onOrientation);
+      window.removeEventListener('deviceorientationabsolute', onOrientation as EventListener, true);
+      window.removeEventListener('deviceorientation', onOrientation as EventListener, true);
       window.clearTimeout(timer);
     };
   }, []);

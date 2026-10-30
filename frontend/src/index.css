@@ -63,11 +63,15 @@ html.dark {
   html {
     @apply antialiased;
     /* Skrollbar paydo bo'lganda/yo'qolganda sahifa yon tomonga siljimasin */
-    scrollbar-gutter: stable;
+    overflow-x: clip;
+    @media (min-width: 1024px) {
+      scrollbar-gutter: stable;
+    }
   }
 
   body {
     @apply bg-neutral-50 font-sans text-neutral-800 dark:bg-neutral-950 dark:text-neutral-100;
+    overflow-x: clip;
     /* Tor ekranlarda uzun so'z yoki &nbsp; bilan bog'langan matn sahifani yonga surmasin */
     overflow-wrap: break-word;
   }
@@ -342,3 +346,91 @@ html.dark {
     @apply w-full rounded-xl;
   }
 }
+
+/* Yorug' mavzu: iliq fon, aniq chegarali kartalar va sokin urg'ular. */
+html:not(.dark) body {
+  background: radial-gradient(circle at 80% 0%, #e9f3e8 0, transparent 30rem),
+    linear-gradient(180deg, #fafaf5 0%, #f3f5ef 100%);
+  color: #25362b;
+}
+
+html:not(.dark) .light-header {
+  background: rgb(255 255 251 / 94%);
+  border-bottom-color: #dce6da;
+  box-shadow: 0 4px 18px rgb(19 65 38 / 5%);
+}
+
+html:not(.dark) .light-surface,
+html:not(.dark) .card {
+  background: linear-gradient(155deg, #ffffff 0%, #fcfdf9 100%);
+  box-shadow: 0 1px 2px rgb(17 49 28 / 4%), 0 14px 32px rgb(17 49 28 / 5%);
+  --tw-ring-color: #dfe8dc;
+}
+
+html:not(.dark) .card-neon {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(155deg, #ffffff 0%, #f9fcf8 100%);
+  box-shadow: 0 1px 2px rgb(17 49 28 / 4%), 0 12px 26px rgb(17 49 28 / 6%);
+  --tw-ring-color: #dfe8dc;
+}
+
+html:not(.dark) .card-neon::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #cfa449, #238750);
+  opacity: .8;
+}
+
+html:not(.dark) .card-neon:hover,
+html:not(.dark) .card-neon:focus-visible {
+  background: #17743d;
+  box-shadow: 0 12px 28px rgb(16 85 47 / 18%);
+}
+
+html:not(.dark) .card-neon .card-neon-icon {
+  background: #e8f3e8;
+}
+
+html:not(.dark) .card-neon:hover .card-neon-icon,
+html:not(.dark) .card-neon:focus-visible .card-neon-icon {
+  background: rgb(255 255 255 / 16%);
+}
+
+html:not(.dark) .card-neon-subtitle {
+  color: #53675a;
+}
+
+html:not(.dark) .light-surface h2,
+html:not(.dark) .section-title {
+  color: #163b27;
+}
+
+html:not(.dark) .light-surface ol > li {
+  background: #f4f8f2;
+}
+
+/* ===== Leaflet xarita qatlamlari z-index cheklovi ===== */
+/* Leaflet ichki pane (400-700) va controls (800-1000) header (z-30/40), dropdown va modal ustiga chiqmasligi uchun */
+.leaflet-container {
+  isolation: isolate;
+  z-index: 1 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20 !important;
+}
+
+.leaflet-pane {
+  z-index: 10 !important;
+}
+
+.leaflet-tile-pane    { z-index: 1 !important; }
+.leaflet-overlay-pane { z-index: 2 !important; }
+.leaflet-shadow-pane  { z-index: 3 !important; }
+.leaflet-marker-pane  { z-index: 4 !important; }
+.leaflet-tooltip-pane { z-index: 5 !important; }
+.leaflet-popup-pane   { z-index: 6 !important; }

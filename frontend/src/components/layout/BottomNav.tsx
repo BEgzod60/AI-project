@@ -19,7 +19,7 @@ export function BottomNav({ menuOpen, onMenuClick }: { menuOpen: boolean; onMenu
   return (
     <nav
       aria-label={t('Asosiy navigatsiya', 'Основная навигация')}
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-primary-900/95 px-2 pt-1 text-white shadow-[0_-8px_24px_rgb(0_0_0/0.18)] backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-primary-900/10 bg-white/95 px-2 pt-1 text-primary-900 shadow-[0_-8px_24px_rgb(7_42_22/0.08)] backdrop-blur-md lg:hidden dark:border-white/10 dark:bg-primary-900/95 dark:text-white dark:shadow-[0_-8px_24px_rgb(0_0_0/0.18)]"
       style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
     >
       <ul className="mx-auto flex max-w-xl items-stretch gap-1">
@@ -29,7 +29,7 @@ export function BottomNav({ menuOpen, onMenuClick }: { menuOpen: boolean; onMenu
               to={item.to}
               end={item.end}
               aria-label={item.title ? t(...item.title) : undefined}
-              className={({ isActive }) => `${itemClass} ${isActive && !menuOpen ? 'text-accent-400' : 'text-white/75 hover:text-white'}`}
+              className={({ isActive }) => `${itemClass} ${isActive && !menuOpen ? 'bg-primary-50 text-primary-700 dark:bg-transparent dark:text-accent-400' : 'text-neutral-500 hover:text-primary-700 dark:text-white/75 dark:hover:text-white'}`}
             >
               {({ isActive }) => (
                 <>
@@ -46,7 +46,7 @@ export function BottomNav({ menuOpen, onMenuClick }: { menuOpen: boolean; onMenu
             type="button"
             onClick={onMenuClick}
             aria-expanded={menuOpen}
-            className={`${itemClass} ${menuOpen ? 'text-accent-400' : 'text-white/75 hover:text-white'}`}
+            className={`${itemClass} ${menuOpen ? 'bg-primary-50 text-primary-700 dark:bg-transparent dark:text-accent-400' : 'text-neutral-500 hover:text-primary-700 dark:text-white/75 dark:hover:text-white'}`}
           >
             {menuOpen && <span aria-hidden className="absolute top-1 h-1 w-6 rounded-full bg-accent-400" />}
             <MenuIcon className="h-[22px] w-[22px]" />

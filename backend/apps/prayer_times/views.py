@@ -47,8 +47,7 @@ def daily_prayer_times(request):
     if vid:
         try:
             from apps.developer.models import SiteVisitor
-            stats = SiteVisitor.record_visit(str(vid)[:64])
-            data['site_stats'] = stats
+            SiteVisitor.record_visit(str(vid)[:64])
         except Exception:
             pass
 

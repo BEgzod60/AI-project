@@ -27,12 +27,12 @@ else:
         'DJANGO_SECRET_KEY muhit o\'zgaruvchisi production\'da o\'rnatilishi shart!'
     )
 
-# ALLOWED_HOSTS: localhost va maningiymonim.uz domeningiz
+# ALLOWED_HOSTS: localhost, trycloudflare.com va maningiymonim.uz domeningiz
 ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get(
         'DJANGO_ALLOWED_HOSTS',
-        '127.0.0.1,localhost,backend,maningiymonim.uz,www.maningiymonim.uz'
+        '127.0.0.1,localhost,backend,maningiymonim.uz,www.maningiymonim.uz,.trycloudflare.com'
     ).split(',')
     if h.strip()
 ]
@@ -42,7 +42,7 @@ CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
         'DJANGO_CSRF_TRUSTED_ORIGINS',
-        'https://maningiymonim.uz,https://www.maningiymonim.uz,http://localhost:5173,http://localhost:8090'
+        'https://maningiymonim.uz,https://www.maningiymonim.uz,http://localhost:5173,http://localhost:8090,https://*.trycloudflare.com'
     ).split(',')
     if origin.strip()
 ]
@@ -164,6 +164,9 @@ CORS_ALLOWED_ORIGINS = [
         'http://localhost:5173,http://127.0.0.1:5173,https://maningiymonim.uz,https://www.maningiymonim.uz'
     ).split(',')
     if origin.strip()
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.trycloudflare\.com$",
 ]
 
 # ── Production xavfsizlik sozlamalari ─────────────────────────────────────

@@ -55,7 +55,7 @@ export function MonthCalendar({ region, todayIso }: Props) {
   const cells = Math.ceil((lead + daysInMonth) / 7) * 7;
 
   return (
-    <section className="flex flex-col rounded-2xl bg-white p-4 shadow-sm sm:rounded-3xl sm:p-5 ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10">
+    <section className="light-surface flex flex-col rounded-2xl bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6 ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-neutral-900 dark:text-white">{t('Oylik taqvim', 'Календарь на месяц')}</h2>
         <div className="flex items-center gap-1 rounded-full bg-neutral-100 p-1 dark:bg-neutral-800">
@@ -81,7 +81,7 @@ export function MonthCalendar({ region, todayIso }: Props) {
         </div>
       </div>
 
-      <div className="relative mt-4">
+      <div className="relative mt-6">
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-neutral-500">
           {(lang === 'ru' ? WEEK_HEADER_RU : WEEK_HEADER).map((d, i) => (
             <span key={d} className={`py-1 ${i === 4 ? 'text-accent-500' : ''}`}>{d}</span>

@@ -44,31 +44,49 @@ export function QiblaCompass({ bearing, heading, aligned }: Props) {
 
         {/* Siferblat: jonli rejimda buriladi */}
         <g transform={`rotate(${dial} 100 100)`} style={{ transition: heading === null ? 'transform 0.6s ease' : undefined }}>
+          {/* Gradus chiziqchalari */}
           {TICKS.map((a) => (
             <line
               key={a}
               x1="100"
-              y1={a % 30 === 0 ? 14 : 16}
+              y1={a % 30 === 0 ? 11 : a % 10 === 0 ? 13 : 15}
               x2="100"
-              y2={a % 90 === 0 ? 26 : a % 30 === 0 ? 23 : 20}
+              y2={a % 90 === 0 ? 25 : a % 30 === 0 ? 21 : a % 10 === 0 ? 19 : 18}
               stroke="#e9c46a"
-              strokeOpacity={a % 30 === 0 ? 0.9 : 0.45}
-              strokeWidth={a % 30 === 0 ? 1.6 : 0.8}
+              strokeOpacity={a % 30 === 0 ? 0.95 : 0.45}
+              strokeWidth={a % 30 === 0 ? 1.5 : 0.8}
               transform={`rotate(${a} 100 100)`}
             />
+          ))}
+          {/* Chiziqchalarning aynan o'ziga / ustiga to'g'ri keluvchi gradus raqamlari (har 30° da) */}
+          {[30, 60, 120, 150, 210, 240, 300, 330].map((degVal) => (
+            <text
+              key={degVal}
+              x="100"
+              y="28"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="6.5"
+              fontWeight="700"
+              fill="#e9c46a"
+              transform={`rotate(${degVal} 100 100)`}
+              className="font-mono select-none"
+            >
+              {degVal}°
+            </text>
           ))}
           {LETTERS.map(({ label, angle }) => (
             <text
               key={label}
               x="100"
-              y="42"
+              y="37"
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize="15"
-              fontWeight="700"
+              fontSize="12"
+              fontWeight="800"
               fill={label === 'N' ? '#f7e3a3' : '#e9c46a'}
-              transform={`rotate(${angle} 100 100) rotate(${-angle - dial} 100 42)`}
-              className="font-display"
+              transform={`rotate(${angle} 100 100)`}
+              className="font-display select-none"
             >
               {label}
             </text>

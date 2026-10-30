@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import PREFIX, ApiKey
+from .models import PREFIX, ApiKey, SiteVisitor
 
 
 @admin.register(ApiKey)
@@ -17,3 +17,13 @@ class ApiKeyAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False  # kalit faqat sayt orqali beriladi (to'liq kalit bir marta ko'rsatiladi)
+
+
+@admin.register(SiteVisitor)
+class SiteVisitorAdmin(admin.ModelAdmin):
+    list_display = ['visitor_id', 'first_seen', 'last_seen', 'visit_count']
+    ordering = ['-last_seen']
+    readonly_fields = ['visitor_id', 'first_seen', 'last_seen', 'visit_count']
+
+    def has_add_permission(self, request):
+        return False

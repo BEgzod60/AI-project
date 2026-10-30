@@ -4,7 +4,6 @@ import { RegionPicker } from '../prayerTimes/RegionPicker';
 import { LanguageSelect } from '../common/LanguageSelect';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { SearchIcon } from '../common/Icons';
-import { VisitorCounter } from '../common/VisitorCounter';
 import { useT } from '../../i18n';
 
 interface HeaderProps {
@@ -18,7 +17,7 @@ const iconBtn =
 export function Header({ region, onRegionChange }: HeaderProps) {
   const t = useT();
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/90 px-3 py-2 backdrop-blur sm:px-4 md:px-6 md:py-3 dark:border-neutral-800 dark:bg-neutral-900/90">
+    <header className="light-header sticky top-0 z-50 border-b border-neutral-200/70 bg-white/90 px-3 py-2 backdrop-blur sm:px-4 md:px-6 md:py-3 dark:border-neutral-800 dark:bg-neutral-900/90">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
         {/* Telefon/planshet: logotip (desktopda logotip sidebar'da) */}
         <Link to="/" aria-label={t('Bosh sahifa', 'Главная')} className="flex shrink-0 items-center gap-2 rounded-xl py-1 pr-1 lg:hidden">
@@ -36,7 +35,6 @@ export function Header({ region, onRegionChange }: HeaderProps) {
             <SearchIcon />
           </Link>
           <RegionPicker value={region} onChange={onRegionChange} variant="compact" />
-          <VisitorCounter />
           {/* Til va mavzu: faqat kompyuterda */}
           <div className="hidden items-center gap-3 md:flex">
             <LanguageSelect />

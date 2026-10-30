@@ -14,8 +14,8 @@ interface Props {
 
 type Mode = 'near' | 'full';
 
-/** Yaqin ko'rinish masshtabi — atrofdagi ko'chalar va binolar ko'rinadi */
-const NEAR_ZOOM = 17;
+/** Joylashuv atrofida ko'rsatiladigan masofa (metr). */
+const NEAR_RADIUS_M = 3000;
 /** Joyidan Qibla tomon chiziladigan aniq yo'nalish chizig'i uzunligi (metr) */
 const NEAR_LINE_M = 3000;
 
@@ -91,9 +91,9 @@ export default function QiblaMap({ from, label, bearing, distance, accuracy }: P
       .addTo(layer);
 
     if (mode === 'near') {
-      // Aniqlik past bo'lsa — butun aniqlik doirasi ko'rinadigan masshtab
-      if (accuracyCircle && accuracy! > 60) map.fitBounds(L.latLng(from.lat, from.lon).toBounds(accuracy! * 2.2), { maxZoom: NEAR_ZOOM });
-      else map.setView([from.lat, from.lon], NEAR_ZOOM);
+      // Joylashuv belgilangach xarita taxminan 3 km atrofni ko'rsatadi.
+      const radius = Math.max(NEAR_RADIUS_M, accuracyCircle ? accuracy! : 0);
+      map.fitBounds(L.latLng(from.lat, from.lon).toBounds(radius * 2), { padding: [16, 16] });
     } else {
       const mid = path[Math.floor(path.length / 2)];
       L.marker(mid, {

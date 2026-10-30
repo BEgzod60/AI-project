@@ -10,7 +10,6 @@ import {
   CrescentIcon,
   CompassIcon,
   GraduateIcon,
-  InfoIcon,
   MosqueIcon,
   SurahIcon,
   TasbehIcon,
@@ -45,7 +44,6 @@ const FEATURES: { to: string; icon: JSX.Element; title: [string, string]; subtit
   { to: '/namoz-organish', icon: <GraduateIcon />, title: ['Namoz o‘rganish', 'Обучение намазу'], subtitle: ['Rasmlar va audio bilan bosqichma-bosqich', 'Пошагово, с картинками и аудио'] },
   { to: '/qibla', icon: <CompassIcon />, title: ['Qibla', 'Кибла'], subtitle: ['Qibla yo‘nalishini topish (kompas)', 'Направление киблы (компас)'] },
   { to: '/suralar', icon: <SurahIcon />, title: ['Suralar va oyatlar', 'Суры и аяты'], subtitle: ['Arabcha, o‘zbekcha va ma’nosi', 'Арабский текст и смысловой перевод'] },
-  { to: '/loyiha-haqida', icon: <InfoIcon />, title: ['Loyiha haqida', 'О проекте'], subtitle: ['Maqsad, tamoyillar va manbalar', 'Цели, принципы и источники'] },
 ];
 
 const REASONS: { title: [string, string]; text: [string, string] }[] = [
@@ -147,7 +145,7 @@ export function HomePage() {
       </section>
 
       {/* ===== Bo'limlar ===== */}
-      <section className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-3 sm:gap-3 md:mt-8 md:gap-4 xl:grid-cols-7">
+      <section className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-3 sm:gap-3 md:mt-8 md:gap-4">
         {FEATURES.map((f, i) => (
           // Animatsiya alohida o'ramda: kartaning hover'dagi siljishi bilan to'qnashmasligi uchun
           // Telefonda 7-karta ikki ustunni egallaydi — bo'sh joy qolmaydi
@@ -159,7 +157,7 @@ export function HomePage() {
 
       {/* ===== Nega Iymon ===== */}
       <section className="mt-3 grid gap-3 motion-safe:animate-fade-in-up sm:mt-4 sm:gap-4 md:mt-10 md:gap-6 lg:grid-cols-[1fr_380px]" style={{ animationDelay: '500ms' }}>
-        <div className="overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 md:rounded-3xl md:p-8 dark:bg-neutral-900">
+        <div className="light-surface overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 md:rounded-3xl md:p-8 dark:bg-neutral-900">
           <h2 className="font-display text-xl font-extrabold text-neutral-900 md:text-2xl dark:text-white">
             {t('Nega', 'Почему')} <span className="text-primary-600">Iymon?</span>
           </h2>
@@ -208,7 +206,7 @@ export function HomePage() {
 function HadisiCarousel() {
   const t = useT();
   return (
-    <div className="overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 md:rounded-3xl dark:bg-neutral-900">
+    <div className="light-surface overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-6 md:rounded-3xl dark:bg-neutral-900">
       <h2 className="font-display text-lg font-extrabold text-neutral-900 sm:text-xl dark:text-white">
         {t('Kun', 'Хадис')} <span className="text-accent-500">{t('hadisi', 'дня')}</span>
       </h2>

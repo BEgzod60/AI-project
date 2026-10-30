@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { useLayoutRegion, useSetLayoutRegion } from '../../hooks/useTypedOutlet';
 import { getDailyPrayerTimes, getMonthWithNext } from '../../services/prayerService';
@@ -11,7 +10,6 @@ import { addDays, useTashkentClock } from '../../components/prayerTimes/clock';
 import { CurrentPrayerPanel } from '../../components/prayerTimes/CurrentPrayerPanel';
 import { WeekTable } from '../../components/prayerTimes/WeekTable';
 import { MonthCalendar } from '../../components/prayerTimes/MonthCalendar';
-import { InfoCards } from '../../components/prayerTimes/InfoCards';
 import { RegionPicker } from '../../components/prayerTimes/RegionPicker';
 import { PageGuide, type GuideStep } from '../../components/common/PageGuide';
 
@@ -29,10 +27,6 @@ const GUIDE: GuideStep[] = [
     title: ['Haftalik yoki oylik ko‘rinishni tanlang', 'Выберите неделю или месяц'],
     text: ['Haftalik jadval yoki oylik taqvim orqali boshqa kunlarning vaqtlarini oldindan biling.', 'Узнавайте время на другие дни заранее по недельной таблице или месячному календарю.'],
   },
-  {
-    title: ['Qo‘shimcha ma’lumotni ko‘ring', 'Смотрите дополнительные сведения'],
-    text: ['Hijriy sana, quyosh chiqishi va qibla yo‘nalishi alohida kartochkalarda berilgan.', 'Хиджрийская дата, восход солнца и направление киблы — в отдельных карточках.'],
-  },
 ];
 
 export function PrayerTimesPage() {
@@ -46,8 +40,6 @@ export function PrayerTimesPage() {
   const daily = useApi(() => getDailyPrayerTimes(region), [region, now.iso]);
   const months = useApi(() => getMonthWithNext(region, y, m), [region, y, m]);
   const tomorrowBomdod = months.data?.find((day) => day.date === addDays(now.iso, 1))?.timings.bomdod;
-  /** Telefon/planshetda haftalik jadval va oylik taqvim bitta joyda — tabs orqali */
-  const [view, setView] = useState<'hafta' | 'oy'>('hafta');
 
   return (
     <div className="page page-stack">
@@ -102,26 +94,18 @@ export function PrayerTimesPage() {
         </div>
       )}
 
-      {/* ===== Jadval, taqvim va ma'lumotlar ===== */}
-      {/* Telefon/planshet: haftalik jadval ↔ oylik taqvim */}
-      <div role="tablist" aria-label={t('Jadval turi', 'Вид расписания')} className="seg lg:hidden">
-        {(['hafta', 'oy'] as const).map((v) => (
-          <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className="seg-btn">
-            {v === 'hafta' ? t('Haftalik jadval', 'Неделя') : t('Oylik taqvim', 'Месяц')}
-          </button>
-        ))}
-      </div>
+      {/* ===== Jadval va taqvim ===== */}
       <div
-        className="grid gap-3 motion-safe:animate-fade-in-up sm:gap-4 lg:gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_minmax(0,0.85fr)]"
+        className="grid items-stretch gap-4 motion-safe:animate-fade-in-up sm:gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"
         style={{ animationDelay: '200ms' }}
       >
-        <div className={`min-w-0 flex-col ${view === 'hafta' ? 'flex' : 'hidden lg:flex'}`}>
+        <div className="flex min-w-0 flex-1 flex-col">
         {months.error ? (
           <div className="rounded-3xl bg-white p-6 text-sm text-neutral-600 shadow-sm ring-1 ring-black/5 dark:bg-neutral-900 dark:text-neutral-300">
             {months.error}
           </div>
         ) : months.data ? (
-          <div className="min-w-0">
+          <div className="flex min-w-0 flex-1 flex-col">
             <WeekTable days={months.data} todayIso={now.iso} />
           </div>
         ) : (
@@ -130,11 +114,8 @@ export function PrayerTimesPage() {
           </div>
         )}
         </div>
-        <div className={`min-w-0 ${view === 'oy' ? '' : 'hidden lg:block'}`}>
+        <div className="flex min-w-0 flex-col">
           <MonthCalendar region={region} todayIso={now.iso} />
-        </div>
-        <div className="min-w-0 lg:col-span-2 xl:col-span-1">
-          <InfoCards region={region} now={now} />
         </div>
       </div>
 
