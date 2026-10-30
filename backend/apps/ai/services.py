@@ -155,9 +155,11 @@ def describe_image(path_or_url: str, question: str = '', model: str | None = Non
         image_part = {'type': 'image_url', 'image_url': {'url': path_or_url}}
     else:
         # MEDIA_ROOT ga nisbatan yoki to'liq yo'l bilan berilishi mumkin
-        candidate = Path(path_or_url)
-        if not candidate.is_absolute() and settings.MEDIA_ROOT:
-            candidate = Path(settings.MEDIA_ROOT) / path_or_url
+        # Faqat MEDIA_ROOT ichidagi fayllar (`..` va tashqi yo'llar orqali boshqa fayllarni o'qib bo'lmaydi)
+        media_root = Path(settings.MEDIA_ROOT).resolve()
+        candidate = (media_root / path_or_url).resolve()
+        if not candidate.is_relative_to(media_root):
+            raise AiError('Rasm topilmadi.', 'image_not_found')
         image_part = {'type': 'image_url', 'image_url': {'url': _image_data_url(candidate)}}
 
     ask = question.strip() or (

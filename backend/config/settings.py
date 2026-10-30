@@ -151,7 +151,17 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_PAGINATION_CLASS': None,
+    # Faqat AI endpointlari uchun (apps.ai.views); qolgan API'lar cheklanmaydi.
+    'DEFAULT_THROTTLE_RATES': {
+        'ai': os.environ.get('AI_RATE_LIMIT', '10/min'),
+        'ai_daily': os.environ.get('AI_DAILY_LIMIT', '100/day'),
+    },
 }
+
+# AI yordamchi — sukut bo'yicha O'CHIRILGAN. Yoqilganda ham faqat tizimga kirgan
+# foydalanuvchilar (admin) murojaat qila oladi va so'rovlar tezlik bo'yicha cheklanadi.
+# Provayder kaliti (AI_API_KEY / NEON_AI_GATEWAY_TOKEN) alohida talab qilinadi.
+AI_ENABLED = os.environ.get('AI_ENABLED', 'false').lower() in ('true', '1', 'yes')
 
 # Reverse proxy orqasida (Nginx HTTPS) ishlaganda HTTPS ni to'g'ri aniqlash uchun
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
