@@ -38,6 +38,15 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://maningiymonim.uz,https://www.maningiymonim.u
 DJANGO_CORS_ALLOWED_ORIGINS=https://maningiymonim.uz,https://www.maningiymonim.uz
 ```
 
+### 2.1-qadam: Neon PostgreSQL (baza)
+`backend/.env` ga Neon havolasini qo'shing (qiymat Neon Console → Connect yoki lokal `.env.local` da):
+```env
+DATABASE_URL=postgresql://<user>:<parol>@<host>-pooler.<region>.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+Birinchi ishga tushishda `migrate` avtomatik bajariladi. Ma'lumotlarni SQLite'dan ko'chirish `README.md` dagi
+«PostgreSQL (production)» bo'limida (`dumpdata` → `loaddata`; `loaddata` uchun `-pooler` siz havola qulayroq).
+AI yordamchi uchun (ixtiyoriy): `NEON_AI_GATEWAY_BASE_URL`, `NEON_AI_GATEWAY_TOKEN` (yoki `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`).
+
 ### 3-qadam: Docker konteynerlarni ko'tarish
 ```bash
 docker compose up -d --build
