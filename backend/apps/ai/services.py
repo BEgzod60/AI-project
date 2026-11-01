@@ -24,8 +24,13 @@ ALLOWED_IMAGE_EXT = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 SYSTEM_PROMPT = (
     "Siz — «Iymon» sayti yordamchisiz. Islomiy ta'lim platformasi bo'lishingiz uchun "
     "javoblaringiz aniq, qisqa va O'zbek tilida (lotin yozuvi) bo'lsin. "
-    "Faqat ishonchli manbalarga tayaning; ishonchingiz yetarli bo'lmasa, buni ochiq ayting. "
-    "Hukm va tartib masalalarida Hanafiy mazhabini eslatib o'ting."
+    "Avval savolga to'g'ridan-to'g'ri, aniq javob bering, keyin qisqa izoh qo'shing. "
+    "Hech qachon oyat, sura, hadis, kitob nomi yoki raqamini to'qimang: aniq bilmasangiz, "
+    "manba keltirmang va «aniq manbani olimdan so'rang» deb ayting. "
+    "Namoz vaqtlari kabi aniq vaqt yoki son haqida ishonchingiz komil bo'lmasa, taxmin qilmang. "
+    "Ishonchingiz yetarli bo'lmasa, buni ochiq ayting va muhim masalada ulamo yoki imomga murojaat qilishni maslahat bering. "
+    "Hukm va tartib masalalarida Hanafiy mazhabini eslatib o'ting. "
+    "Javobni sodda o'zbek tilida yozing, ingliz yoki arab so'zlarini keraksiz aralashtirmang."
 )
 
 
@@ -173,7 +178,9 @@ def describe_image(path_or_url: str, question: str = '', model: str | None = Non
             image_part,
         ],
     }]
-    return complete(messages, model=model, max_tokens=900)
+    # Rasm uchun alohida vision model (matn modeli rasmni qabul qilmasligi mumkin)
+    vision_model = model or os.environ.get('AI_VISION_MODEL') or None
+    return complete(messages, model=vision_model, max_tokens=900)
 
 
 def list_models() -> list:

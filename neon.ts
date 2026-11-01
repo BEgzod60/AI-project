@@ -1,9 +1,9 @@
 import { defineConfig } from "@neon/config/v1";
 
 export default defineConfig({
-  // Iymon loyihasi: faqat Postgres + AI Gateway (chat yordamchisi va rasmni o'qish)
+  // Iymon loyihasi: faqat Postgres. AI Gateway pullik plan talab qiladi (Free'da ishlamaydi),
+  // shuning uchun o'chirilgan. AI kerak bo'lsa AI_API_KEY/AI_BASE_URL/AI_MODEL ishlatiladi.
   auth: false,
-  aiGateway: true,
   // Branch policy: per-branch tuning
   branch: (branch) => {
     if (branch.isDefault) {

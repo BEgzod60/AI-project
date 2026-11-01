@@ -45,7 +45,7 @@ DATABASE_URL=postgresql://<user>:<parol>@<host>-pooler.<region>.aws.neon.tech/ne
 ```
 Birinchi ishga tushishda `migrate` avtomatik bajariladi. Ma'lumotlarni SQLite'dan ko'chirish `README.md` dagi
 «PostgreSQL (production)» bo'limida (`dumpdata` → `loaddata`; `loaddata` uchun `-pooler` siz havola qulayroq).
-AI yordamchi uchun (ixtiyoriy): `NEON_AI_GATEWAY_BASE_URL`, `NEON_AI_GATEWAY_TOKEN` (yoki `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`).
+AI yordamchi uchun (ixtiyoriy): bepul Groq ishlating — `AI_ENABLED=true`, `AI_BASE_URL=https://api.groq.com/openai/v1`, `AI_API_KEY`, `AI_MODEL`, `AI_VISION_MODEL`. `NEON_AI_GATEWAY_*` kerak emas (Neon AI Gateway pullik rejani talab qiladi).
 
 ### 3-qadam: Docker konteynerlarni ko'tarish
 ```bash
